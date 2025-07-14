@@ -16,6 +16,9 @@
     .seat.available { background-color: #198754; color: #fff; cursor: pointer; }
     .seat.taken { background-color: #6c757d; color: #fff; cursor: default; }
     .seat.me { border: 2px solid #0d6efd; }
+
+    .contact { font-size: 0.9rem; color: #6c757d; }
+    .contact-list { list-style: none; padding: 0px; margin: 10px; }
   </style>
 </head>
 <body class="bg-light">
@@ -24,17 +27,33 @@
     <!-- Login Screen -->
     <div id="auth-screen" class="card mx-auto p-4" style="max-width:400px;">
       <h5 class="text-center mb-3">🏌🏻GOLF CLUB BOOKING🏌🏻</h5>
+          
       <form id="login-form">
         <input type="email" id="email" class="form-control mb-3" placeholder="you@kpmg.co.th" required />
         <button type="submit" class="btn btn-primary w-100">Login</button>
       </form>
+
+       <div>
+        <p class="contact contact-list">Contact person:</p>
+        <ul class="contact contact-list list-unstyled mb-0">
+
+          <li>Watcharap@kpmg.co.th</li>
+          <li>Pichayaw@kpmg.co.th</li>
+          <li>Nopparatb@kpmg.co.th</li>
+        </ul>
+      </div>
     </div>
 
     <!-- App Screen -->
     <div id="app-screen" class="d-none">
       <div class="d-flex justify-content-between align-items-center mb-4">
         <h3>🏌🏻GOLF CLUB BOOKING🏌🏻</h3>
+        
         <button id="logout-btn" class="btn btn-outline-secondary">Logout</button>
+        
+      </div>
+      <div>
+        <p class="contact">Contact person: Watcharap@kpmg.co.th; Pichayaw@kpmg.co.th; Nopparatb@kpmg.co.th</p>
       </div>
 
       <!-- Admin Controls -->
