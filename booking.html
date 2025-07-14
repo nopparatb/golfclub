@@ -170,7 +170,7 @@
           } else if(!hasBooking && !isFull && regOpen) {
             action=`<button class="btn btn-sm btn-primary w-100 mb-2" data-book="${slot.id}">Book</button>`;
           } else {
-            action=`<button class="btn btn-sm btn-secondary w-100 mb-2" disabled>${!regOpen?'Booking Closed':(hasBooking?'Already Booked':'Full')}</button>`;
+            action=`<button class="btn btn-sm btn-secondary w-100 mb-2" disabled>${!regOpen?'Booking Closed':(hasBooking?'You have already booked another slot':'Full')}</button>`;
           }
         }
         const col=document.createElement('div'); col.className='col-md-4';
