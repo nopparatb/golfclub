@@ -146,303 +146,398 @@
   </main>
 
   <!-- 🔥 Firebase + Firestore + existing logic (now as ES module) -->
-  <script type="module">
-    /*************** Firebase setup ***************/
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js';
-    import {
-      getFirestore,
-      doc,
-      setDoc,
-      onSnapshot,
-      serverTimestamp
-    } from 'https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js';
+ <script type="module">
+  /*************** Firebase setup ***************/
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js';
+  import {
+    getFirestore,
+    doc,
+    setDoc,
+    onSnapshot,
+    serverTimestamp
+  } from 'https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js';
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyDxlQWFYRcbGZ133HPEMXYy8tR_KMUiJw0",
-      authDomain: "lottogame-16083.firebaseapp.com",
-      projectId: "lottogame-16083",
-      storageBucket: "lottogame-16083.firebasestorage.app",
-      messagingSenderId: "278778623701",
-      appId: "1:278778623701:web:c7828b036c617a13fa145c"
-    };
+  const firebaseConfig = {
+    apiKey: "AIzaSyDxlQWFYRcbGZ133HPEMXYy8tR_KMUiJw0",
+    authDomain: "lottogame-16083.firebaseapp.com",
+    projectId: "lottogame-16083",
+    storageBucket: "lottogame-16083.firebasestorage.app",
+    messagingSenderId: "278778623701",
+    appId: "1:278778623701:web:c7828b036c617a13fa145c"
+  };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-    // Collection: golfluckydraw, Document: currentResult
-    const resultDocRef = doc(db, 'golfluckydraw', 'currentResult');
+  // Collection: golfluckydraw, Document: currentResult
+  const resultDocRef = doc(db, 'golfluckydraw', 'currentResult');
 
-    /*************** Existing UI + logic ***************/
-    // ------- Config (editable via settings) -------
-    let baseFlipIntervalMs = 55;   // starting flip cadence
-    let spinDurationMs = 5000;     // total duration
-    const minInterval = 20;
-    const defaultBase = 55;
-    const defaultDuration = 5000;
+  /*************** Config & state ***************/
+  // Editable via settings
+  let baseFlipIntervalMs = 55;   // starting flip cadence
+  let spinDurationMs = 5000;     // total duration
+  const minInterval = 20;
+  const defaultBase = 55;
+  const defaultDuration = 5000;
+  const maxFlipIntervalMs = 260; // Max delay at the end of deceleration
 
-    const maxFlipIntervalMs = 260; // Max delay at the end of deceleration
+  // Shared spin state
+  let isSpinning = false;
+  let showingIndex = 0;
+  let hasShownOnce = false;
+  let nextFlipAt = 0;
 
-    // ------- DOM -------
-    const imgEl = document.getElementById('displayImg');
-    const randomBtn = document.getElementById('randomBtn');
-    const resultBadge = document.getElementById('resultBadge');
-    const fallbackText = document.getElementById('fallbackText');
-    const overlay = document.getElementById('shuffleOverlay');
-    const progressBar = document.getElementById('progressBar');
-    const progressWrap = document.getElementById('progressWrap');
-    const card = document.getElementById('card');
-    const confettiWrap = document.getElementById('confetti');
+  // Multi-client sync state
+  let lastKnownState = 'idle';
+  let lastSpinIdStarted = null;
+  let activeSpinId = null;
+  let activeResult = null;          // 0 or 1
+  let isInitiatorForActiveSpin = false;
+  let pendingLocalSpinId = null;    // used to know if this client initiated
 
-    const openSettings = document.getElementById('openSettings');
-    const settingsPanel = document.getElementById('settingsPanel');
-    const closeSettings = document.getElementById('closeSettings');
-    const intervalInput = document.getElementById('intervalInput');
-    const durationInput = document.getElementById('durationInput');
-    const saveSettings = document.getElementById('saveSettings');
-    const resetDefaults = document.getElementById('resetDefaults');
+  /*************** DOM refs ***************/
+  const imgEl = document.getElementById('displayImg');
+  const randomBtn = document.getElementById('randomBtn');
+  const resultBadge = document.getElementById('resultBadge');
+  const fallbackText = document.getElementById('fallbackText');
+  const overlay = document.getElementById('shuffleOverlay');
+  const progressBar = document.getElementById('progressBar');
+  const progressWrap = document.getElementById('progressWrap');
+  const card = document.getElementById('card');
+  const confettiWrap = document.getElementById('confetti');
 
-    // ------- Images -------
-    const sources = ['./assets/KPMG1.jpeg', './assets/KPMG2.png'];
-    const preloaded = [];
-    let canShow = false;
+  const openSettings = document.getElementById('openSettings');
+  const settingsPanel = document.getElementById('settingsPanel');
+  const closeSettings = document.getElementById('closeSettings');
+  const intervalInput = document.getElementById('intervalInput');
+  const durationInput = document.getElementById('durationInput');
+  const saveSettings = document.getElementById('saveSettings');
+  const resetDefaults = document.getElementById('resetDefaults');
 
-    function preloadImages() {
-      let loaded = 0;
-      sources.forEach((src, i) => {
-        const im = new Image();
-        im.onload = () => {
-          loaded++;
-          if (loaded === sources.length) {
-            canShow = true;
-            fallbackText.classList.add('hidden');
-            // We will still load index 0 as a default;
-            // if Firestore has a previous result, listener will override it.
-            imgEl.src = sources[0];
-            imgEl.style.opacity = '1';
-          }
-        };
-        im.onerror = () => {
-          fallbackText.classList.remove('hidden');
-          imgEl.style.opacity = '0';
-        };
-        im.src = src;
-        preloaded[i] = im;
-      });
-    }
-    preloadImages();
+  /*************** Images ***************/
+  const sources = ['./assets/KPMG1.jpeg', './assets/KPMG2.png'];
+  const preloaded = [];
+  let canShow = false;
 
-    // ------- Helpers -------
-    function moveButtonToLowerCenter() {
-      randomBtn.classList.remove('top-1/2', '-translate-y-1/2');
-      randomBtn.classList.add('bottom-8');
-      randomBtn.style.top = '';
-    }
-
-    function easeOutQuad(t) {
-      // t in [0,1]
-      return 1 - (1 - t) * (1 - t);
-    }
-
-    function createConfettiBurst() {
-      confettiWrap.innerHTML = '';
-      const colors = ['#22c55e', '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
-      const count = 18;
-      for (let i = 0; i < count; i++) {
-        const piece = document.createElement('span');
-        piece.className = 'confetti';
-        piece.style.left = (45 + Math.random() * 10) + '%';
-        piece.style.top = '12%';
-        piece.style.background = colors[i % colors.length];
-        piece.style.borderRadius = Math.random() > 0.5 ? '2px' : '0';
-        piece.style.animation = `confettiFall ${800 + Math.random() * 600}ms ease-out forwards`;
-        piece.style.transform = `translateY(0) rotate(${Math.random() * 160 - 80}deg)`;
-        confettiWrap.appendChild(piece);
-      }
-      setTimeout(() => confettiWrap.innerHTML = '', 1800);
-    }
-
-    // Centralized function to show a final result (index 0 or 1)
-    function showResult(index, { playCelebration = false } = {}) {
-      if (!canShow) return;
-
-      imgEl.style.opacity = '0.25';
-      setTimeout(() => {
-        imgEl.src = sources[index]; // 0 -> KPMG1, 1 -> KPMG2
-        imgEl.style.opacity = '1';
-        imgEl.style.filter = 'none';
-        imgEl.style.transform = 'none';
-      }, 80);
-
-      showingIndex = index;
-      resultBadge.textContent = 'Result locked';
-      resultBadge.classList.remove('hidden');
-      card.classList.add('pulse-glow');
-      if (playCelebration) createConfettiBurst();
-
-      if (!hasShownOnce) {
-        moveButtonToLowerCenter();
-        hasShownOnce = true;
-      }
-    }
-
-    // ------- Shuffle logic with smooth deceleration -------
-    let isSpinning = false;
-    let showingIndex = 0;
-    let hasShownOnce = false;
-    let nextFlipAt = 0;
-
-    async function saveResultToFirestore(resultIndex) {
-      try {
-        await setDoc(resultDocRef, {
-          result: resultIndex,      // 0 or 1 to map photos
-          updatedAt: serverTimestamp()
-        });
-      } catch (err) {
-        console.error('Failed to save result:', err);
-      }
-    }
-
-    function startSpin() {
-      if (!canShow || isSpinning) return;
-      isSpinning = true;
-      resultBadge.classList.add('hidden');
-
-      // Disable button during spin
-      randomBtn.disabled = true;
-      randomBtn.classList.add('opacity-80', 'cursor-not-allowed');
-
-      // Visuals
-      overlay.classList.remove('hidden');
-      progressWrap.classList.remove('bg-transparent');
-      imgEl.style.filter = 'blur(2px)';
-      imgEl.style.transform = 'scale(1.01)';
-      card.classList.remove('pulse-glow');
-
-      const start = performance.now();
-      nextFlipAt = start; // flip immediately
-      let lastElapsed = 0;
-
-      function tick(now) {
-        const elapsed = now - start;
-        const t = Math.min(1, elapsed / spinDurationMs); // normalized progress
-        // Decelerate: interval grows from base -> max
-        const currentDelay = baseFlipIntervalMs + (maxFlipIntervalMs - baseFlipIntervalMs) * easeOutQuad(t);
-
-        // Progress bar
-        progressBar.style.width = (t * 100).toFixed(2) + '%';
-
-        // Mild shake at the start
-        if (elapsed < 320 && Math.random() < 0.35) {
-          card.classList.add('shake');
-          setTimeout(() => card.classList.remove('shake'), 140);
+  function preloadImages() {
+    let loaded = 0;
+    sources.forEach((src, i) => {
+      const im = new Image();
+      im.onload = () => {
+        loaded++;
+        if (loaded === sources.length) {
+          canShow = true;
+          fallbackText.classList.add('hidden');
+          imgEl.src = sources[0];
+          imgEl.style.opacity = '1';
         }
+      };
+      im.onerror = () => {
+        fallbackText.classList.remove('hidden');
+        imgEl.style.opacity = '0';
+      };
+      im.src = src;
+      preloaded[i] = im;
+    });
+  }
+  preloadImages();
 
-        // Flip when time
-        if (now >= nextFlipAt) {
-          showingIndex = 1 - showingIndex;
-          imgEl.style.opacity = '0.25';
-          imgEl.style.transform = 'scale(1.012)';
-          setTimeout(() => {
-            imgEl.src = sources[showingIndex];
-            imgEl.style.opacity = '1';
-            imgEl.style.transform = 'scale(1.01)';
-          }, 40);
-          nextFlipAt = now + currentDelay;
-        }
+  /*************** Helpers ***************/
+  function moveButtonToLowerCenter() {
+    randomBtn.classList.remove('top-1/2', '-translate-y-1/2');
+    randomBtn.classList.add('bottom-8');
+    randomBtn.style.top = '';
+  }
 
-        if (elapsed < spinDurationMs) {
-          requestAnimationFrame(tick);
-        } else {
-          // Stop & finalize
-          const resultIndex = Math.random() < 0.5 ? 0 : 1;
+  function easeOutQuad(t) {
+    return 1 - (1 - t) * (1 - t);
+  }
 
-          // Update UI locally
-          showResult(resultIndex, { playCelebration: true });
-
-          // Persist to Firestore so all clients see the same result
-          saveResultToFirestore(resultIndex);
-
-          overlay.classList.add('hidden');
-          progressBar.style.width = '0%';
-
-          isSpinning = false;
-          randomBtn.disabled = false;
-          randomBtn.classList.remove('opacity-80', 'cursor-not-allowed');
-        }
-        lastElapsed = elapsed;
-      }
-      requestAnimationFrame(tick);
+  function createConfettiBurst() {
+    confettiWrap.innerHTML = '';
+    const colors = ['#22c55e', '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
+    const count = 18;
+    for (let i = 0; i < count; i++) {
+      const piece = document.createElement('span');
+      piece.className = 'confetti';
+      piece.style.left = (45 + Math.random() * 10) + '%';
+      piece.style.top = '12%';
+      piece.style.background = colors[i % colors.length];
+      piece.style.borderRadius = Math.random() > 0.5 ? '2px' : '0';
+      piece.style.animation = `confettiFall ${800 + Math.random() * 600}ms ease-out forwards`;
+      piece.style.transform = `translateY(0) rotate(${Math.random() * 160 - 80}deg)`;
+      confettiWrap.appendChild(piece);
     }
+    setTimeout(() => confettiWrap.innerHTML = '', 1800);
+  }
 
-    randomBtn.addEventListener('click', startSpin);
-
-    // ------- Settings -------
-    function toggleSettings(open) {
-      if (open) {
-        intervalInput.value = String(baseFlipIntervalMs);
-        durationInput.value = String(spinDurationMs);
-        settingsPanel.classList.remove('hidden');
+  function setControlsDisabled(disabled) {
+    // Button + settings icon disabled on all clients while spinning
+    const controls = [randomBtn, openSettings];
+    controls.forEach((el) => {
+      if (!el) return;
+      el.disabled = disabled;
+      if (disabled) {
+        el.classList.add('opacity-60', 'cursor-not-allowed');
       } else {
-        settingsPanel.classList.add('hidden');
+        el.classList.remove('opacity-60', 'cursor-not-allowed');
       }
+    });
+  }
+
+  // Centralized final result display
+  function showResult(index, { playCelebration = false } = {}) {
+    if (!canShow) return;
+
+    imgEl.style.opacity = '0.25';
+    setTimeout(() => {
+      imgEl.src = sources[index];
+      imgEl.style.opacity = '1';
+      imgEl.style.filter = 'none';
+      imgEl.style.transform = 'none';
+    }, 80);
+
+    showingIndex = index;
+    resultBadge.textContent = 'Result locked';
+    resultBadge.classList.remove('hidden');
+    card.classList.add('pulse-glow');
+    if (playCelebration) createConfettiBurst();
+
+    if (!hasShownOnce) {
+      moveButtonToLowerCenter();
+      hasShownOnce = true;
     }
+  }
 
-    openSettings.addEventListener('click', () => toggleSettings(true));
-    closeSettings.addEventListener('click', () => toggleSettings(false));
+  /*************** Shared spin animation ***************/
+  function startSharedSpinAnimation(finalResultIndex, duration, baseInterval) {
+    if (!canShow || isSpinning) return;
+    isSpinning = true;
+    activeResult = finalResultIndex;
 
-    saveSettings.addEventListener('click', () => {
-      const iv = parseInt(intervalInput.value, 10);
-      const du = parseInt(durationInput.value, 10);
-      if (!Number.isFinite(iv) || iv < minInterval) {
-        alert(`Base interval must be a number ≥ ${minInterval} ms.`);
-        return;
+    if (typeof duration === 'number') spinDurationMs = duration;
+    if (typeof baseInterval === 'number') baseFlipIntervalMs = baseInterval;
+
+    resultBadge.classList.add('hidden');
+
+    // Visuals
+    overlay.classList.remove('hidden');
+    progressWrap.classList.remove('bg-transparent');
+    imgEl.style.filter = 'blur(2px)';
+    imgEl.style.transform = 'scale(1.01)';
+    card.classList.remove('pulse-glow');
+    setControlsDisabled(true);
+
+    const start = performance.now();
+    nextFlipAt = start;
+
+    function tick(now) {
+      const elapsed = now - start;
+      const t = Math.min(1, elapsed / spinDurationMs); // 0..1
+      const currentDelay = baseFlipIntervalMs +
+        (maxFlipIntervalMs - baseFlipIntervalMs) * easeOutQuad(t);
+
+      // Progress bar
+      progressBar.style.width = (t * 100).toFixed(2) + '%';
+
+      // Mild shake at the start
+      if (elapsed < 320 && Math.random() < 0.35) {
+        card.classList.add('shake');
+        setTimeout(() => card.classList.remove('shake'), 140);
       }
-      if (!Number.isFinite(du) || du < 600) {
-        alert('Duration must be a number ≥ 600 ms.');
-        return;
+
+      // Flip when time
+      if (now >= nextFlipAt) {
+        showingIndex = 1 - showingIndex;
+        imgEl.style.opacity = '0.25';
+        imgEl.style.transform = 'scale(1.012)';
+        setTimeout(() => {
+          imgEl.src = sources[showingIndex];
+          imgEl.style.opacity = '1';
+          imgEl.style.transform = 'scale(1.01)';
+        }, 40);
+        nextFlipAt = now + currentDelay;
       }
-      baseFlipIntervalMs = iv;
-      spinDurationMs = du;
-      toggleSettings(false);
-    });
 
-    resetDefaults.addEventListener('click', () => {
-      baseFlipIntervalMs = defaultBase;
-      spinDurationMs = defaultDuration;
-      intervalInput.value = String(defaultBase);
-      durationInput.value = String(defaultDuration);
-    });
+      if (elapsed < spinDurationMs) {
+        requestAnimationFrame(tick);
+      } else {
+        // Stop & finalize UI
+        overlay.classList.add('hidden');
+        progressBar.style.width = '0%';
+        isSpinning = false;
+        setControlsDisabled(false);
 
-    // Close settings by clicking outside
-    document.addEventListener('click', (e) => {
-      if (!settingsPanel.contains(e.target) && e.target !== openSettings && !openSettings.contains(e.target)) {
-        toggleSettings(false);
-      }
-    });
-    // ESC to close
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') toggleSettings(false); });
+        // Everyone shows the same final result
+        if (typeof activeResult === 'number') {
+          showResult(activeResult, { playCelebration: true });
+        }
 
-    // Respect reduced motion
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    if (mq.matches) {
-      baseFlipIntervalMs = Math.max(baseFlipIntervalMs, 120);
-      spinDurationMs = Math.max(spinDurationMs, 1500);
-      imgEl.style.transitionDuration = '200ms';
-    }
-
-    /*************** Firestore realtime sync ***************/
-    // Listen to changes in golfluckydraw/currentResult and update UI everywhere
-    onSnapshot(resultDocRef, (snap) => {
-      if (!snap.exists()) return;
-      const data = snap.data();
-      const idx = data.result;
-      if (typeof idx === 'number' && idx >= 0 && idx < sources.length) {
-        // Only apply snapshot result when not currently spinning
-        if (!isSpinning) {
-          showResult(idx, { playCelebration: false }); // remote clients see the latest result
+        // Only the initiator updates Firestore state to "result"
+        if (isInitiatorForActiveSpin && activeSpinId) {
+          finalizeSpinInFirestore(activeSpinId, activeResult);
         }
       }
-    });
-  </script>
+    }
+
+    requestAnimationFrame(tick);
+  }
+
+  async function finalizeSpinInFirestore(spinId, resultIndex) {
+    try {
+      await setDoc(resultDocRef, {
+        state: 'result',
+        spinId,
+        result: resultIndex,
+        finishedAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+    } catch (err) {
+      console.error('Failed to finalize spin:', err);
+    }
+  }
+
+  /*************** Trigger spin (from button) ***************/
+  function createSpinId() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return 'spin-' + Date.now() + '-' + Math.random().toString(16).slice(2);
+  }
+
+  async function triggerSpin() {
+    if (!canShow || isSpinning || lastKnownState === 'spinning') return;
+
+    const spinId = createSpinId();
+    pendingLocalSpinId = spinId;
+    isInitiatorForActiveSpin = true;
+
+    // Decide the shared result up front so all devices match
+    const chosenResult = Math.random() < 0.5 ? 0 : 1;
+
+    try {
+      await setDoc(resultDocRef, {
+        state: 'spinning',
+        spinId,
+        result: chosenResult,
+        baseFlipMs: baseFlipIntervalMs,
+        spinDurationMs,
+        startedAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+    } catch (err) {
+      console.error('Failed to trigger spin:', err);
+      // If write fails, this client should not act like the initiator
+      isInitiatorForActiveSpin = false;
+      pendingLocalSpinId = null;
+    }
+  }
+
+  randomBtn.addEventListener('click', triggerSpin);
+
+  /*************** Settings UI ***************/
+  function toggleSettings(open) {
+    if (open) {
+      intervalInput.value = String(baseFlipIntervalMs);
+      durationInput.value = String(spinDurationMs);
+      settingsPanel.classList.remove('hidden');
+    } else {
+      settingsPanel.classList.add('hidden');
+    }
+  }
+
+  openSettings.addEventListener('click', () => toggleSettings(true));
+  closeSettings.addEventListener('click', () => toggleSettings(false));
+
+  saveSettings.addEventListener('click', () => {
+    const iv = parseInt(intervalInput.value, 10);
+    const du = parseInt(durationInput.value, 10);
+    if (!Number.isFinite(iv) || iv < minInterval) {
+      alert(`Base interval must be a number ≥ ${minInterval} ms.`);
+      return;
+    }
+    if (!Number.isFinite(du) || du < 600) {
+      alert('Duration must be a number ≥ 600 ms.');
+      return;
+    }
+    baseFlipIntervalMs = iv;
+    spinDurationMs = du;
+    toggleSettings(false);
+  });
+
+  resetDefaults.addEventListener('click', () => {
+    baseFlipIntervalMs = defaultBase;
+    spinDurationMs = defaultDuration;
+    intervalInput.value = String(defaultBase);
+    durationInput.value = String(defaultDuration);
+  });
+
+  // Close settings by clicking outside
+  document.addEventListener('click', (e) => {
+    if (!settingsPanel.contains(e.target) && e.target !== openSettings && !openSettings.contains(e.target)) {
+      toggleSettings(false);
+    }
+  });
+
+  // ESC to close
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') toggleSettings(false);
+  });
+
+  // Respect reduced motion preference
+  const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+  if (mq.matches) {
+    baseFlipIntervalMs = Math.max(baseFlipIntervalMs, 120);
+    spinDurationMs = Math.max(spinDurationMs, 1500);
+    imgEl.style.transitionDuration = '200ms';
+  }
+
+  /*************** Firestore realtime sync ***************/
+  onSnapshot(resultDocRef, (snap) => {
+    if (!snap.exists()) return;
+    const data = snap.data();
+
+    lastKnownState = data.state || 'idle';
+
+    // Keep activeResult synced with Firestore
+    if (typeof data.result === 'number') {
+      activeResult = data.result;
+    }
+
+    if (lastKnownState === 'spinning') {
+      setControlsDisabled(true);
+
+      const spinId = data.spinId;
+      const docBase = typeof data.baseFlipMs === 'number' ? data.baseFlipMs : baseFlipIntervalMs;
+      const docDur = typeof data.spinDurationMs === 'number' ? data.spinDurationMs : spinDurationMs;
+
+      // If this is a new spin, start animation on this client
+      if (spinId && spinId !== lastSpinIdStarted) {
+        lastSpinIdStarted = spinId;
+        activeSpinId = spinId;
+
+        // Check if this client was the one that triggered it
+        if (pendingLocalSpinId && pendingLocalSpinId === spinId) {
+          isInitiatorForActiveSpin = true;
+        } else {
+          isInitiatorForActiveSpin = false;
+        }
+
+        if (typeof activeResult !== 'number') activeResult = 0;
+        startSharedSpinAnimation(activeResult, docDur, docBase);
+      }
+    } else if (lastKnownState === 'result') {
+      setControlsDisabled(false);
+
+      // If not currently spinning, just show the final result immediately
+      if (!isSpinning && typeof data.result === 'number' &&
+          data.result >= 0 && data.result < sources.length) {
+        showResult(data.result, { playCelebration: false });
+      }
+    } else {
+      // idle
+      setControlsDisabled(false);
+    }
+  });
+</script>
+
 </body>
 </html>
