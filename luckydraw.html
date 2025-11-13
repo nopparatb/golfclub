@@ -73,11 +73,10 @@
       <p class="text-[11px] text-gray-500">
         The shuffle starts fast at this interval and decelerates smoothly until it stops.
       </p>
-      <!-- (Optional) expose duration if you want -->
       <label class="block text-xs text-gray-600" for="durationInput">Total spin duration (ms)</label>
       <input id="durationInput" type="number" min="600" step="100"
              class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
-             value="2200" />
+             value="5000" />
       <div class="flex items-center justify-end gap-2 pt-1">
         <button id="resetDefaults" class="rounded-lg px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-100">Reset</button>
         <button id="saveSettings" class="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700">Save</button>
@@ -146,16 +145,42 @@
     </button>
   </main>
 
-  <script>
+  <!-- 🔥 Firebase + Firestore + existing logic (now as ES module) -->
+  <script type="module">
+    /*************** Firebase setup ***************/
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js';
+    import {
+      getFirestore,
+      doc,
+      setDoc,
+      onSnapshot,
+      serverTimestamp
+    } from 'https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js';
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDxlQWFYRcbGZ133HPEMXYy8tR_KMUiJw0",
+      authDomain: "lottogame-16083.firebaseapp.com",
+      projectId: "lottogame-16083",
+      storageBucket: "lottogame-16083.firebasestorage.app",
+      messagingSenderId: "278778623701",
+      appId: "1:278778623701:web:c7828b036c617a13fa145c"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // Collection: golfluckydraw, Document: currentResult
+    const resultDocRef = doc(db, 'golfluckydraw', 'currentResult');
+
+    /*************** Existing UI + logic ***************/
     // ------- Config (editable via settings) -------
     let baseFlipIntervalMs = 55;   // starting flip cadence
-    let spinDurationMs = 2200;     // total duration
+    let spinDurationMs = 5000;     // total duration
     const minInterval = 20;
     const defaultBase = 55;
-    const defaultDuration = 2200;
+    const defaultDuration = 5000;
 
-    // Max delay at the end of deceleration (how slow it becomes before stopping)
-    const maxFlipIntervalMs = 260;
+    const maxFlipIntervalMs = 260; // Max delay at the end of deceleration
 
     // ------- DOM -------
     const imgEl = document.getElementById('displayImg');
@@ -190,6 +215,8 @@
           if (loaded === sources.length) {
             canShow = true;
             fallbackText.classList.add('hidden');
+            // We will still load index 0 as a default;
+            // if Firestore has a previous result, listener will override it.
             imgEl.src = sources[0];
             imgEl.style.opacity = '1';
           }
@@ -231,8 +258,31 @@
         piece.style.transform = `translateY(0) rotate(${Math.random() * 160 - 80}deg)`;
         confettiWrap.appendChild(piece);
       }
-      // Clean up
       setTimeout(() => confettiWrap.innerHTML = '', 1800);
+    }
+
+    // Centralized function to show a final result (index 0 or 1)
+    function showResult(index, { playCelebration = false } = {}) {
+      if (!canShow) return;
+
+      imgEl.style.opacity = '0.25';
+      setTimeout(() => {
+        imgEl.src = sources[index]; // 0 -> KPMG1, 1 -> KPMG2
+        imgEl.style.opacity = '1';
+        imgEl.style.filter = 'none';
+        imgEl.style.transform = 'none';
+      }, 80);
+
+      showingIndex = index;
+      resultBadge.textContent = 'Result locked';
+      resultBadge.classList.remove('hidden');
+      card.classList.add('pulse-glow');
+      if (playCelebration) createConfettiBurst();
+
+      if (!hasShownOnce) {
+        moveButtonToLowerCenter();
+        hasShownOnce = true;
+      }
     }
 
     // ------- Shuffle logic with smooth deceleration -------
@@ -240,6 +290,17 @@
     let showingIndex = 0;
     let hasShownOnce = false;
     let nextFlipAt = 0;
+
+    async function saveResultToFirestore(resultIndex) {
+      try {
+        await setDoc(resultDocRef, {
+          result: resultIndex,      // 0 or 1 to map photos
+          updatedAt: serverTimestamp()
+        });
+      } catch (err) {
+        console.error('Failed to save result:', err);
+      }
+    }
 
     function startSpin() {
       if (!canShow || isSpinning) return;
@@ -294,17 +355,12 @@
         } else {
           // Stop & finalize
           const resultIndex = Math.random() < 0.5 ? 0 : 1;
-          imgEl.style.opacity = '0.25';
-          setTimeout(() => {
-            imgEl.src = sources[resultIndex];
-            imgEl.style.opacity = '1';
-            imgEl.style.filter = 'none';
-            imgEl.style.transform = 'none';
-            resultBadge.textContent = 'Result locked';
-            resultBadge.classList.remove('hidden');
-            card.classList.add('pulse-glow');
-            createConfettiBurst();
-          }, 80);
+
+          // Update UI locally
+          showResult(resultIndex, { playCelebration: true });
+
+          // Persist to Firestore so all clients see the same result
+          saveResultToFirestore(resultIndex);
 
           overlay.classList.add('hidden');
           progressBar.style.width = '0%';
@@ -312,11 +368,6 @@
           isSpinning = false;
           randomBtn.disabled = false;
           randomBtn.classList.remove('opacity-80', 'cursor-not-allowed');
-
-          if (!hasShownOnce) {
-            moveButtonToLowerCenter();
-            hasShownOnce = true;
-          }
         }
         lastElapsed = elapsed;
       }
@@ -378,6 +429,20 @@
       spinDurationMs = Math.max(spinDurationMs, 1500);
       imgEl.style.transitionDuration = '200ms';
     }
+
+    /*************** Firestore realtime sync ***************/
+    // Listen to changes in golfluckydraw/currentResult and update UI everywhere
+    onSnapshot(resultDocRef, (snap) => {
+      if (!snap.exists()) return;
+      const data = snap.data();
+      const idx = data.result;
+      if (typeof idx === 'number' && idx >= 0 && idx < sources.length) {
+        // Only apply snapshot result when not currently spinning
+        if (!isSpinning) {
+          showResult(idx, { playCelebration: false }); // remote clients see the latest result
+        }
+      }
+    });
   </script>
 </body>
 </html>
