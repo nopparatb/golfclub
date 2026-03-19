@@ -5,539 +5,840 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
   <title>KPMG Golf Charity Lucky Draw</title>
 
+  <!-- Google Fonts: Bebas Neue (display) + DM Sans (body) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
   <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
 
   <style>
-    .fade-swap { transition: opacity 120ms linear, transform 120ms ease; }
+    :root {
+      --kpmg-blue: #00338d;
+      --kpmg-light: #0091da;
+      --kpmg-accent: #00b0f0;
+      --gold: #c9a84c;
+    }
+
+    * { -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: #f0f4fa;
+      background-image:
+        radial-gradient(ellipse 80% 60% at 50% 0%, rgba(0,51,141,0.10) 0%, transparent 70%),
+        repeating-linear-gradient(135deg, rgba(0,51,141,.025) 0 1px, transparent 1px 40px);
+      min-height: 100dvh;
+    }
+
+    h1, .font-display { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.04em; }
+
+    /* Card */
+    .card-shell {
+      background: #fff;
+      border-radius: 20px;
+      box-shadow:
+        0 2px 4px rgba(0,51,141,.06),
+        0 12px 40px rgba(0,51,141,.13),
+        0 0 0 1px rgba(0,51,141,.07);
+      overflow: hidden;
+    }
+
+    /* Progress bar */
+    #progressBar {
+      background: linear-gradient(90deg, var(--kpmg-blue), var(--kpmg-accent));
+      transition: width 80ms linear;
+    }
+
+    /* Flip animation */
+    .fade-swap { transition: opacity 80ms linear; }
+
+    /* Pulse glow on result */
     .pulse-glow {
-      box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6);
-      animation: pulseGlow 1.4s ease-out 2;
+      animation: pulseGlow 1.6s ease-out 2;
     }
     @keyframes pulseGlow {
-      0% { box-shadow: 0 0 0 0 rgba(34,197,94,.6); }
-      100% { box-shadow: 0 0 0 18px rgba(34,197,94,0); }
+      0%   { box-shadow: 0 0 0 0 rgba(0,51,141,.5), 0 12px 40px rgba(0,51,141,.13); }
+      100% { box-shadow: 0 0 0 22px rgba(0,51,141,0), 0 12px 40px rgba(0,51,141,.13); }
     }
-    .shake {
-      animation: shake 280ms ease-in-out;
-    }
+
+    /* Shake */
+    .shake { animation: shake 280ms ease-in-out; }
     @keyframes shake {
       0%,100% { transform: translateX(0); }
-      20% { transform: translateX(-3px); }
-      40% { transform: translateX(3px); }
+      20% { transform: translateX(-4px); }
+      40% { transform: translateX(4px); }
       60% { transform: translateX(-2px); }
       80% { transform: translateX(2px); }
     }
-    /* Confetti bits */
-    .confetti { position: absolute; width: 6px; height: 10px; opacity: 0; transform: translateY(0); }
+
+    /* Confetti */
+    .confetti { position: absolute; width: 7px; height: 11px; opacity: 0; }
     @keyframes confettiFall {
       0%   { opacity: 1; transform: translateY(0) rotate(0deg); }
-      100% { opacity: 0; transform: translateY(80px) rotate(320deg); }
+      100% { opacity: 0; transform: translateY(90px) rotate(340deg); }
+    }
+
+    /* Randomize button */
+    #randomBtn {
+      font-family: 'Bebas Neue', sans-serif;
+      letter-spacing: 0.12em;
+      font-size: 1.25rem;
+      background: var(--kpmg-blue);
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      padding: 14px 40px;
+      box-shadow: 0 4px 18px rgba(0,51,141,.35), 0 1px 3px rgba(0,51,141,.2);
+      cursor: pointer;
+      transition: background 180ms, transform 120ms, box-shadow 180ms, opacity 180ms;
+      position: fixed;
+      bottom: 36px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 20;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      user-select: none;
+    }
+    #randomBtn:hover:not(:disabled) {
+      background: #002070;
+      box-shadow: 0 6px 24px rgba(0,51,141,.45), 0 1px 3px rgba(0,51,141,.2);
+      transform: translateX(-50%) translateY(-2px);
+    }
+    #randomBtn:active:not(:disabled) {
+      transform: translateX(-50%) translateY(0px);
+    }
+    #randomBtn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+    #randomBtn svg { transition: transform 200ms; }
+    #randomBtn:hover:not(:disabled) svg { transform: rotate(14deg); }
+
+    /* Settings button */
+    #openSettings {
+      position: fixed;
+      right: 14px;
+      top: 14px;
+      z-index: 30;
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.92);
+      border: 1px solid rgba(0,51,141,.12);
+      box-shadow: 0 2px 8px rgba(0,51,141,.10);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: background 150ms;
+      color: var(--kpmg-blue);
+    }
+    #openSettings:hover { background: #fff; }
+    #openSettings:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Settings panel */
+    #settingsPanel {
+      position: fixed;
+      right: 14px; top: 62px;
+      z-index: 30;
+      width: 280px;
+      background: #fff;
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 8px 32px rgba(0,51,141,.15), 0 0 0 1px rgba(0,51,141,.08);
+    }
+
+    /* Result badge */
+    #resultBadge {
+      position: absolute;
+      top: 12px; left: 12px;
+      background: rgba(0,51,141,.08);
+      color: var(--kpmg-blue);
+      border: 1px solid rgba(0,51,141,.18);
+      border-radius: 999px;
+      padding: 4px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    /* Connecting badge */
+    #connectingBadge {
+      position: absolute;
+      bottom: 12px; left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,.06);
+      color: #666;
+      border-radius: 999px;
+      padding: 4px 14px;
+      font-size: 11px;
+      font-weight: 500;
+      pointer-events: none;
+      user-select: none;
+      white-space: nowrap;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .dot-pulse {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: #999;
+      animation: dotPulse 1.2s ease-in-out infinite;
+    }
+    @keyframes dotPulse {
+      0%,100% { opacity: 0.3; transform: scale(0.8); }
+      50% { opacity: 1; transform: scale(1.1); }
+    }
+
+    /* Overlay */
+    #shuffleOverlay {
+      position: absolute; inset: 0;
+      display: none;
+      align-items: center; justify-content: center;
+      background: rgba(255,255,255,.55);
+      backdrop-filter: blur(3px);
+      -webkit-backdrop-filter: blur(3px);
+    }
+    #shuffleOverlay.active { display: flex; }
+
+    /* Input styling */
+    .setting-input {
+      width: 100%;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-family: 'DM Sans', sans-serif;
+      outline: none;
+      transition: border-color 150ms, box-shadow 150ms;
+    }
+    .setting-input:focus {
+      border-color: var(--kpmg-blue);
+      box-shadow: 0 0 0 3px rgba(0,51,141,.12);
+    }
+
+    .btn-save {
+      background: var(--kpmg-blue);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      transition: background 150ms;
+    }
+    .btn-save:hover { background: #002070; }
+    .btn-reset {
+      background: transparent;
+      color: #555;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      transition: background 150ms;
+    }
+    .btn-reset:hover { background: #f3f4f6; }
+
+    /* Header */
+    .page-header {
+      text-align: center;
+      padding-top: 28px;
+      padding-bottom: 12px;
+    }
+    .page-header .eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      color: var(--kpmg-blue);
+      text-transform: uppercase;
+      opacity: 0.65;
+    }
+    .page-header h1 {
+      font-size: clamp(2rem, 6vw, 3.2rem);
+      color: var(--kpmg-blue);
+      line-height: 1;
+      margin-top: 4px;
     }
   </style>
 </head>
-<body class="min-h-screen bg-gray-50 text-gray-900 selection:bg-indigo-200 selection:text-gray-900">
+<body>
 
-  <!-- Settings (top-right) -->
-  <button
-    id="openSettings"
-    class="fixed right-3 top-3 z-30 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/90 shadow ring-1 ring-black/10 hover:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-    title="Edit alternation speed (ms)"
-    aria-label="Edit alternation speed"
-  >
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-        d="M16.862 3.487a1.5 1.5 0 0 1 2.121 0l1.53 1.53a1.5 1.5 0 0 1 0 2.121L9.75 17.922l-4.5 1.125 1.125-4.5L16.862 3.487z"/>
+  <!-- Settings toggle -->
+  <button id="openSettings" title="Alternation settings" aria-label="Edit settings">
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
     </svg>
   </button>
 
-  <div
-    id="settingsPanel"
-    class="fixed right-3 top-16 z-30 hidden w-72 rounded-2xl bg-white p-4 shadow-xl ring-1 ring-black/10"
-    role="dialog" aria-modal="true" aria-labelledby="settingsTitle"
-  >
-    <div class="flex items-start justify-between">
-      <h2 id="settingsTitle" class="text-sm font-semibold tracking-wide text-gray-700">Alternation Settings</h2>
-      <button id="closeSettings" class="rounded-lg p-1 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500" aria-label="Close settings">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" stroke="currentColor" fill="none">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+  <!-- Settings panel -->
+  <div id="settingsPanel" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <h2 id="settingsTitle" style="font-size:13px;font-weight:700;color:#111;letter-spacing:0.02em;">Spin Settings</h2>
+      <button id="closeSettings" style="background:none;border:none;cursor:pointer;padding:4px;border-radius:6px;color:#555;"
+              aria-label="Close settings">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
       </button>
     </div>
 
-    <div class="mt-3 space-y-3">
-      <label class="block text-xs text-gray-600" for="intervalInput">Base flip interval (ms)</label>
-      <input id="intervalInput" type="number" min="20" step="10"
-             class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
-             value="55" />
-      <p class="text-[11px] text-gray-500">
-        The shuffle starts fast at this interval and decelerates smoothly until it stops.
-      </p>
-      <label class="block text-xs text-gray-600" for="durationInput">Total spin duration (ms)</label>
-      <input id="durationInput" type="number" min="600" step="100"
-             class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
-             value="5000" />
-      <div class="flex items-center justify-end gap-2 pt-1">
-        <button id="resetDefaults" class="rounded-lg px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-100">Reset</button>
-        <button id="saveSettings" class="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700">Save</button>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div>
+        <label style="font-size:11px;color:#555;font-weight:600;display:block;margin-bottom:5px;" for="intervalInput">
+          Base flip interval (ms)
+        </label>
+        <input id="intervalInput" class="setting-input" type="number" min="20" step="10" value="55" />
+        <p style="font-size:10px;color:#888;margin-top:4px;">Shuffle starts at this speed and decelerates.</p>
+      </div>
+      <div>
+        <label style="font-size:11px;color:#555;font-weight:600;display:block;margin-bottom:5px;" for="durationInput">
+          Total spin duration (ms)
+        </label>
+        <input id="durationInput" class="setting-input" type="number" min="600" step="100" value="5000" />
+      </div>
+      <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;padding-top:4px;">
+        <button id="resetDefaults" class="btn-reset">Reset</button>
+        <button id="saveSettings" class="btn-save">Save</button>
       </div>
     </div>
   </div>
 
-  <main class="relative mx-auto flex min-h-screen max-w-4xl flex-col px-4 pb-28 pt-14 sm:pt-16">
-    <!-- Display area -->
-    <section class="flex flex-1 items-center justify-center">
-      <div id="card"
-           class="relative aspect-[4/3] w-full max-w-xl overflow-hidden rounded-2xl bg-white shadow-lg ring-1 ring-black/10">
-        <!-- Progress bar (top) -->
-        <div id="progressWrap" class="absolute left-0 right-0 top-0 h-1.5 bg-transparent">
-          <div id="progressBar" class="h-full w-0 bg-indigo-500 transition-[width] duration-100 linear"></div>
+  <!-- Page layout -->
+  <main style="max-width:680px;margin:0 auto;padding:0 16px 120px;min-height:100dvh;display:flex;flex-direction:column;">
+
+    <!-- Header -->
+    <div class="page-header">
+      <p class="eyebrow">Golf Charity Event</p>
+      <h1>Lucky Draw</h1>
+    </div>
+
+    <!-- Card -->
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;">
+      <div id="card" class="card-shell" style="position:relative;width:100%;max-width:560px;aspect-ratio:4/3;">
+
+        <!-- Progress bar -->
+        <div style="position:absolute;top:0;left:0;right:0;height:3px;background:rgba(0,51,141,.06);z-index:2;">
+          <div id="progressBar" style="height:100%;width:0%;border-radius:2px;"></div>
         </div>
 
-        <!-- Image -->
-        <img id="displayImg" src="" alt="Randomized result"
-             class="fade-swap h-full w-full object-contain opacity-0"
+        <!-- Main image -->
+        <img id="displayImg" src="" alt="Lucky draw result"
+             class="fade-swap"
+             style="width:100%;height:100%;object-fit:contain;opacity:0;display:block;"
              draggable="false" />
 
-        <!-- Shuffle overlay -->
-        <div id="shuffleOverlay"
-             class="pointer-events-none absolute inset-0 hidden items-center justify-center">
-          <div class="absolute inset-0 bg-white/60 backdrop-blur-sm"></div>
-          <!-- diagonal streaks -->
-          <div class="absolute inset-0 opacity-20"
-               style="background-image: repeating-linear-gradient(135deg, rgba(0,0,0,.06) 0 8px, transparent 8px 16px);"></div>
-          <div class="relative z-10 flex flex-col items-center gap-2">
-            <div class="h-8 w-8 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent"></div>
-            <div class="text-xs font-medium text-gray-700">Shuffling…</div>
+        <!-- Shuffle overlay — FIX: uses display:flex not class toggle -->
+        <div id="shuffleOverlay">
+          <div style="position:absolute;inset:0;background:rgba(255,255,255,.55);backdrop-filter:blur(3px);"></div>
+          <div style="position:absolute;inset:0;opacity:0.12;background-image:repeating-linear-gradient(135deg,rgba(0,51,141,.15) 0 8px,transparent 8px 18px);"></div>
+          <div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:8px;">
+            <div style="width:32px;height:32px;border-radius:50%;border:2.5px solid var(--kpmg-blue);border-top-color:transparent;animation:spin 700ms linear infinite;"></div>
+            <span style="font-size:11px;font-weight:600;color:var(--kpmg-blue);letter-spacing:0.06em;text-transform:uppercase;">Shuffling…</span>
           </div>
         </div>
 
         <!-- Result badge -->
-        <div id="resultBadge"
-             class="pointer-events-none absolute left-3 top-3 hidden select-none rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200">
-          Result locked
+        <div id="resultBadge" style="display:none;">
+          ✦ Result Locked
+        </div>
+
+        <!-- Connecting badge -->
+        <div id="connectingBadge">
+          <span class="dot-pulse"></span>
+          Connecting…
         </div>
 
         <!-- Confetti container -->
-        <div id="confetti" class="pointer-events-none absolute inset-0"></div>
+        <div id="confetti" style="pointer-events:none;position:absolute;inset:0;overflow:hidden;"></div>
 
-        <!-- Fallback hint -->
+        <!-- Fallback hint — shown when images can't load -->
         <div id="fallbackText"
-             class="pointer-events-none absolute inset-0 hidden items-center justify-center text-center text-sm text-gray-500">
-          Place two images at <code class="rounded bg-gray-100 px-1 py-0.5">./assets/KPMG - White.png</code> and
-          <code class="rounded bg-gray-100 px-1 py-0.5">./assets/KPMG - Blue.png</code>.
+             style="display:none;position:absolute;inset:0;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-size:13px;color:#888;padding:32px;gap:12px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="#ccc" stroke-width="1.5">
+            <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+            <polyline points="21 15 16 10 5 21"/>
+          </svg>
+          <div>
+            <strong style="color:#555;display:block;margin-bottom:6px;">Images not found</strong>
+            Place your images in an <code style="background:#f3f4f6;padding:2px 6px;border-radius:4px;">assets/</code> folder next to this HTML file,<br/>
+            named <code style="background:#f3f4f6;padding:2px 6px;border-radius:4px;">KPMG - White.png</code> and <code style="background:#f3f4f6;padding:2px 6px;border-radius:4px;">KPMG - Blue.png</code>.<br/><br/>
+            <span style="font-size:11px;color:#aaa;">⚠️ Must be served via a web server, not opened as a local file.<br/>
+            Try: <code style="background:#f3f4f6;padding:1px 5px;border-radius:3px;">npx serve .</code> or GitHub Pages.</span>
+          </div>
         </div>
       </div>
-    </section>
-
-    <!-- Control button -->
-    <button
-      id="randomBtn"
-      class="group fixed left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2 select-none rounded-2xl bg-indigo-600 px-6 py-3 text-base font-semibold text-white shadow-lg ring-1 ring-black/10 transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-300 sm:px-8 sm:py-3.5">
-      <span class="inline-flex items-center gap-2">
-        Randomize
-        <svg class="h-5 w-5 transition group-hover:rotate-12" xmlns="http://www.w3.org/2000/svg" fill="none"
-             viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M16.5 3.5l4 4m0 0l-4 4m4-4H9.5a6 6 0 100 12h.5"/>
-        </svg>
-      </span>
-    </button>
+    </div>
   </main>
 
-  <!-- 🔥 Firebase + Firestore + existing logic (now as ES module) -->
- <script type="module">
-  /*************** Firebase setup ***************/
-  import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js';
-  import {
-    getFirestore,
-    doc,
-    setDoc,
-    onSnapshot,
-    serverTimestamp
-  } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
+  <!-- Randomize button — FIX: starts at bottom, no mid-screen positioning -->
+  <button id="randomBtn">
+    Randomize
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+         fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="16 3 21 3 21 8"/>
+      <line x1="4" y1="20" x2="21" y2="3"/>
+      <polyline points="21 16 21 21 16 21"/>
+      <line x1="15" y1="15" x2="21" y2="21"/>
+    </svg>
+  </button>
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyDxlQWFYRcbGZ133HPEMXYy8tR_KMUiJw0",
-    authDomain: "lottogame-16083.firebaseapp.com",
-    projectId: "lottogame-16083",
-    storageBucket: "lottogame-16083.firebasestorage.app",
-    messagingSenderId: "278778623701",
-    appId: "1:278778623701:web:c7828b036c617a13fa145c"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-
-  // Collection: golfluckydraw, Document: currentResult
-  const resultDocRef = doc(db, 'golfluckydraw', 'currentResult');
-
-  /*************** Config & state ***************/
-  // Editable via settings
-  let baseFlipIntervalMs = 55;   // starting flip cadence
-  let spinDurationMs = 5000;     // total duration
-  const minInterval = 20;
-  const defaultBase = 55;
-  const defaultDuration = 5000;
-  const maxFlipIntervalMs = 260; // Max delay at the end of deceleration
-
-  // Shared spin state
-  let isSpinning = false;
-  let showingIndex = 0;
-  let hasShownOnce = false;
-  let nextFlipAt = 0;
-
-  // Multi-client sync state
-  let lastKnownState = 'idle';
-  let lastSpinIdStarted = null;
-  let activeSpinId = null;
-  let activeResult = null;          // 0 or 1
-  let isInitiatorForActiveSpin = false;
-  let pendingLocalSpinId = null;    // used to know if this client initiated
-
-  /*************** DOM refs ***************/
-  const imgEl = document.getElementById('displayImg');
-  const randomBtn = document.getElementById('randomBtn');
-  const resultBadge = document.getElementById('resultBadge');
-  const fallbackText = document.getElementById('fallbackText');
-  const overlay = document.getElementById('shuffleOverlay');
-  const progressBar = document.getElementById('progressBar');
-  const progressWrap = document.getElementById('progressWrap');
-  const card = document.getElementById('card');
-  const confettiWrap = document.getElementById('confetti');
-
-  const openSettings = document.getElementById('openSettings');
-  const settingsPanel = document.getElementById('settingsPanel');
-  const closeSettings = document.getElementById('closeSettings');
-  const intervalInput = document.getElementById('intervalInput');
-  const durationInput = document.getElementById('durationInput');
-  const saveSettings = document.getElementById('saveSettings');
-  const resetDefaults = document.getElementById('resetDefaults');
-
-  /*************** Images ***************/
-  const sources = ['./assets/KPMG - White.png', './assets/KPMG - Blue.png'];
-  const preloaded = [];
-  let canShow = false;
-
-  function preloadImages() {
-    let loaded = 0;
-    sources.forEach((src, i) => {
-      const im = new Image();
-      im.onload = () => {
-        loaded++;
-        if (loaded === sources.length) {
-          canShow = true;
-          fallbackText.classList.add('hidden');
-          imgEl.src = sources[0];
-          imgEl.style.opacity = '1';
-        }
-      };
-      im.onerror = () => {
-        fallbackText.classList.remove('hidden');
-        imgEl.style.opacity = '0';
-      };
-      im.src = src;
-      preloaded[i] = im;
-    });
-  }
-  preloadImages();
-
-  /*************** Helpers ***************/
-  function moveButtonToLowerCenter() {
-    randomBtn.classList.remove('top-1/2', '-translate-y-1/2');
-    randomBtn.classList.add('bottom-8');
-    randomBtn.style.top = '';
-  }
-
-  function easeOutQuad(t) {
-    return 1 - (1 - t) * (1 - t);
-  }
-
-  function createConfettiBurst() {
-    confettiWrap.innerHTML = '';
-    const colors = ['#22c55e', '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
-    const count = 18;
-    for (let i = 0; i < count; i++) {
-      const piece = document.createElement('span');
-      piece.className = 'confetti';
-      piece.style.left = (45 + Math.random() * 10) + '%';
-      piece.style.top = '12%';
-      piece.style.background = colors[i % colors.length];
-      piece.style.borderRadius = Math.random() > 0.5 ? '2px' : '0';
-      piece.style.animation = `confettiFall ${800 + Math.random() * 600}ms ease-out forwards`;
-      piece.style.transform = `translateY(0) rotate(${Math.random() * 160 - 80}deg)`;
-      confettiWrap.appendChild(piece);
+  <style>
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
-    setTimeout(() => confettiWrap.innerHTML = '', 1800);
-  }
+  </style>
 
-  function setControlsDisabled(disabled) {
-    // Button + settings icon disabled on all clients while spinning
-    const controls = [randomBtn, openSettings];
-    controls.forEach((el) => {
-      if (!el) return;
-      el.disabled = disabled;
-      if (disabled) {
-        el.classList.add('opacity-60', 'cursor-not-allowed');
-      } else {
-        el.classList.remove('opacity-60', 'cursor-not-allowed');
-      }
-    });
-  }
+  <!-- Firebase + app logic -->
+  <script type="module">
+    /*************** Firebase setup ***************/
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js';
+    import {
+      getFirestore,
+      doc,
+      setDoc,
+      onSnapshot,
+      serverTimestamp
+    } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
 
-  // Centralized final result display
-  function showResult(index, { playCelebration = false } = {}) {
-    if (!canShow) return;
+    const firebaseConfig = {
+      apiKey: "AIzaSyDxlQWFYRcbGZ133HPEMXYy8tR_KMUiJw0",
+      authDomain: "lottogame-16083.firebaseapp.com",
+      projectId: "lottogame-16083",
+      storageBucket: "lottogame-16083.firebasestorage.app",
+      messagingSenderId: "278778623701",
+      appId: "1:278778623701:web:c7828b036c617a13fa145c"
+    };
 
-    imgEl.style.opacity = '0.25';
-    setTimeout(() => {
-      imgEl.src = sources[index];
-      imgEl.style.opacity = '1';
-      imgEl.style.filter = 'none';
-      imgEl.style.transform = 'none';
-    }, 80);
+    const app = initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
 
-    showingIndex = index;
-    resultBadge.textContent = 'Result locked';
-    resultBadge.classList.remove('hidden');
-    card.classList.add('pulse-glow');
-    if (playCelebration) createConfettiBurst();
+    // Named constants for clarity — FIX: self-documenting result values
+    const RESULT = { WHITE: 0, BLUE: 1 };
 
-    if (!hasShownOnce) {
-      moveButtonToLowerCenter();
-      hasShownOnce = true;
-    }
-  }
+    const resultDocRef = doc(db, 'golfluckydraw', 'currentResult');
 
-  /*************** Shared spin animation ***************/
-  function startSharedSpinAnimation(finalResultIndex, duration, baseInterval) {
-    if (!canShow || isSpinning) return;
-    isSpinning = true;
-    activeResult = finalResultIndex;
+    /*************** Config ***************/
+    let baseFlipIntervalMs = 55;
+    let spinDurationMs     = 5000;
+    const minInterval        = 20;
+    const defaultBase        = 55;
+    const defaultDuration    = 5000;
+    const maxFlipIntervalMs  = 260;
 
-    if (typeof duration === 'number') spinDurationMs = duration;
-    if (typeof baseInterval === 'number') baseFlipIntervalMs = baseInterval;
+    /*************** State ***************/
+    let isSpinning              = false;
+    let showingIndex            = 0;
+    let nextFlipAt              = 0;
 
-    resultBadge.classList.add('hidden');
+    let lastKnownState          = 'idle';
+    let lastSpinIdStarted       = null;
+    let activeSpinId            = null;
+    let activeResult            = null;
+    let isInitiatorForActiveSpin = false;
+    let pendingLocalSpinId      = null;
+    let spinErrorTimeout        = null;   // FIX: guard for Firestore write failure
 
-    // Visuals
-    overlay.classList.remove('hidden');
-    progressWrap.classList.remove('bg-transparent');
-    imgEl.style.filter = 'blur(2px)';
-    imgEl.style.transform = 'scale(1.01)';
-    card.classList.remove('pulse-glow');
-    setControlsDisabled(true);
+    /*************** DOM ***************/
+    const imgEl          = document.getElementById('displayImg');
+    const randomBtn      = document.getElementById('randomBtn');
+    const resultBadge    = document.getElementById('resultBadge');
+    const fallbackText   = document.getElementById('fallbackText');
+    const overlay        = document.getElementById('shuffleOverlay');
+    const progressBar    = document.getElementById('progressBar');
+    const card           = document.getElementById('card');
+    const confettiWrap   = document.getElementById('confetti');
+    const connectingBadge = document.getElementById('connectingBadge');
 
-    const start = performance.now();
-    nextFlipAt = start;
+    const openSettingsBtn  = document.getElementById('openSettings');
+    const settingsPanel    = document.getElementById('settingsPanel');
+    const closeSettingsBtn = document.getElementById('closeSettings');
+    const intervalInput    = document.getElementById('intervalInput');
+    const durationInput    = document.getElementById('durationInput');
+    const saveSettingsBtn  = document.getElementById('saveSettings');
+    const resetDefaultsBtn = document.getElementById('resetDefaults');
 
-    function tick(now) {
-      const elapsed = now - start;
-      const t = Math.min(1, elapsed / spinDurationMs); // 0..1
-      const currentDelay = baseFlipIntervalMs +
-        (maxFlipIntervalMs - baseFlipIntervalMs) * easeOutQuad(t);
+    /*************** Image sources ***************/
+    // ⚠️  IMPORTANT: If your images aren't loading, you MUST serve this file via a web server.
+    //     Opening index.html directly as a file:// URL will block relative asset paths.
+    //     Options:
+    //       • GitHub Pages  → use full URL: 'https://yourusername.github.io/repo/assets/KPMG - White.png'
+    //       • Local server  → run: npx serve . (or python -m http.server 8080) then open http://localhost
+    //       • Or replace paths below with full https:// URLs to wherever your images are hosted.
+    const sources = [
+      './assets/KPMG - White.png',   // index 0 = RESULT.WHITE
+      './assets/KPMG - Blue.png'     // index 1 = RESULT.BLUE
+    ];
 
-      // Progress bar
-      progressBar.style.width = (t * 100).toFixed(2) + '%';
+    // canShow tracks whether images loaded successfully
+    // The button is ALWAYS clickable — canShow only gates the visual flip
+    let canShow = false;
+    let loadErrors = 0;
 
-      // Mild shake at the start
-      if (elapsed < 320 && Math.random() < 0.35) {
-        card.classList.add('shake');
-        setTimeout(() => card.classList.remove('shake'), 140);
-      }
-
-      // Flip when time
-      if (now >= nextFlipAt) {
-        showingIndex = 1 - showingIndex;
-        imgEl.style.opacity = '0.25';
-        imgEl.style.transform = 'scale(1.012)';
-        setTimeout(() => {
-          imgEl.src = sources[showingIndex];
-          imgEl.style.opacity = '1';
-          imgEl.style.transform = 'scale(1.01)';
-        }, 40);
-        nextFlipAt = now + currentDelay;
-      }
-
-      if (elapsed < spinDurationMs) {
-        requestAnimationFrame(tick);
-      } else {
-        // Stop & finalize UI
-        overlay.classList.add('hidden');
-        progressBar.style.width = '0%';
-        isSpinning = false;
-        setControlsDisabled(false);
-
-        // Everyone shows the same final result
-        if (typeof activeResult === 'number') {
-          showResult(activeResult, { playCelebration: true });
-        }
-
-        // Only the initiator updates Firestore state to "result"
-        if (isInitiatorForActiveSpin && activeSpinId) {
-          finalizeSpinInFirestore(activeSpinId, activeResult);
-        }
-      }
-    }
-
-    requestAnimationFrame(tick);
-  }
-
-  async function finalizeSpinInFirestore(spinId, resultIndex) {
-    try {
-      await setDoc(resultDocRef, {
-        state: 'result',
-        spinId,
-        result: resultIndex,
-        finishedAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      }, { merge: true });
-    } catch (err) {
-      console.error('Failed to finalize spin:', err);
-    }
-  }
-
-  /*************** Trigger spin (from button) ***************/
-  function createSpinId() {
-    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
-    return 'spin-' + Date.now() + '-' + Math.random().toString(16).slice(2);
-  }
-
-  async function triggerSpin() {
-    if (!canShow || isSpinning || lastKnownState === 'spinning') return;
-
-    const spinId = createSpinId();
-    pendingLocalSpinId = spinId;
-    isInitiatorForActiveSpin = true;
-
-    // Decide the shared result up front so all devices match
-    const chosenResult = Math.random() < 0.5 ? 0 : 1;
-
-    try {
-      await setDoc(resultDocRef, {
-        state: 'spinning',
-        spinId,
-        result: chosenResult,
-        baseFlipMs: baseFlipIntervalMs,
-        spinDurationMs,
-        startedAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+    function preloadImages() {
+      let loaded = 0;
+      sources.forEach((src, i) => {
+        const im = new Image();
+        im.onload = () => {
+          loaded++;
+          if (loaded === sources.length) {
+            canShow = true;
+            fallbackText.style.display = 'none';
+            imgEl.src = sources[0];
+            imgEl.style.opacity = '1';
+          }
+        };
+        im.onerror = () => {
+          loadErrors++;
+          // Show fallback hint with flex so it centers properly
+          fallbackText.style.display = 'flex';
+          imgEl.style.opacity = '0';
+          // Still allow button to work — Firestore sync still functions
+          // even if images fail to load locally
+        };
+        im.src = src;
       });
-    } catch (err) {
-      console.error('Failed to trigger spin:', err);
-      // If write fails, this client should not act like the initiator
-      isInitiatorForActiveSpin = false;
-      pendingLocalSpinId = null;
     }
-  }
+    preloadImages();
 
-  randomBtn.addEventListener('click', triggerSpin);
+    /*************** Helpers ***************/
+    function easeOutQuad(t) { return 1 - (1 - t) * (1 - t); }
 
-  /*************** Settings UI ***************/
-  function toggleSettings(open) {
-    if (open) {
-      intervalInput.value = String(baseFlipIntervalMs);
-      durationInput.value = String(spinDurationMs);
-      settingsPanel.classList.remove('hidden');
-    } else {
-      settingsPanel.classList.add('hidden');
-    }
-  }
-
-  openSettings.addEventListener('click', () => toggleSettings(true));
-  closeSettings.addEventListener('click', () => toggleSettings(false));
-
-  saveSettings.addEventListener('click', () => {
-    const iv = parseInt(intervalInput.value, 10);
-    const du = parseInt(durationInput.value, 10);
-    if (!Number.isFinite(iv) || iv < minInterval) {
-      alert(`Base interval must be a number ≥ ${minInterval} ms.`);
-      return;
-    }
-    if (!Number.isFinite(du) || du < 600) {
-      alert('Duration must be a number ≥ 600 ms.');
-      return;
-    }
-    baseFlipIntervalMs = iv;
-    spinDurationMs = du;
-    toggleSettings(false);
-  });
-
-  resetDefaults.addEventListener('click', () => {
-    baseFlipIntervalMs = defaultBase;
-    spinDurationMs = defaultDuration;
-    intervalInput.value = String(defaultBase);
-    durationInput.value = String(defaultDuration);
-  });
-
-  // Close settings by clicking outside
-  document.addEventListener('click', (e) => {
-    if (!settingsPanel.contains(e.target) && e.target !== openSettings && !openSettings.contains(e.target)) {
-      toggleSettings(false);
-    }
-  });
-
-  // ESC to close
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') toggleSettings(false);
-  });
-
-  // Respect reduced motion preference
-  const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-  if (mq.matches) {
-    baseFlipIntervalMs = Math.max(baseFlipIntervalMs, 120);
-    spinDurationMs = Math.max(spinDurationMs, 1500);
-    imgEl.style.transitionDuration = '200ms';
-  }
-
-  /*************** Firestore realtime sync ***************/
-  onSnapshot(resultDocRef, (snap) => {
-    if (!snap.exists()) return;
-    const data = snap.data();
-
-    lastKnownState = data.state || 'idle';
-
-    // Keep activeResult synced with Firestore
-    if (typeof data.result === 'number') {
-      activeResult = data.result;
+    function createConfettiBurst() {
+      confettiWrap.innerHTML = '';
+      const colors = ['#00338d', '#0091da', '#00b0f0', '#c9a84c', '#22c55e', '#f59e0b'];
+      for (let i = 0; i < 22; i++) {
+        const p = document.createElement('span');
+        p.className = 'confetti';
+        p.style.cssText = `
+          left:${40 + Math.random() * 20}%;
+          top:8%;
+          background:${colors[i % colors.length]};
+          border-radius:${Math.random() > 0.5 ? '2px' : '50%'};
+          animation:confettiFall ${700 + Math.random() * 700}ms ease-out forwards;
+          transform:rotate(${Math.random() * 160 - 80}deg);
+        `;
+        confettiWrap.appendChild(p);
+      }
+      setTimeout(() => { confettiWrap.innerHTML = ''; }, 1800);
     }
 
-    if (lastKnownState === 'spinning') {
+    function setControlsDisabled(disabled) {
+      [randomBtn, openSettingsBtn].forEach(el => {
+        if (!el) return;
+        el.disabled = disabled;
+      });
+    }
+
+    function showResult(index, { playCelebration = false } = {}) {
+      // Show result badge regardless of image load state
+      resultBadge.style.display = 'block';
+      card.classList.add('pulse-glow');
+      if (playCelebration) createConfettiBurst();
+
+      if (!canShow) return; // images not loaded — badge + confetti still fires
+
+      imgEl.style.opacity = '0.2';
+      setTimeout(() => {
+        imgEl.src = sources[index];
+        imgEl.style.opacity = '1';
+        imgEl.style.filter  = 'none';
+        imgEl.style.transform = 'none';
+      }, 80);
+      showingIndex = index;
+    }
+
+    /*************** Shared spin animation ***************/
+    function startSharedSpinAnimation(finalResultIndex, duration, baseInterval) {
+      if (isSpinning) return;
+      isSpinning   = true;
+      activeResult = finalResultIndex;
+
+      if (typeof duration === 'number')     spinDurationMs    = duration;
+      if (typeof baseInterval === 'number') baseFlipIntervalMs = baseInterval;
+
+      resultBadge.style.display = 'none';
+      card.classList.remove('pulse-glow');
+
+      // If images never loaded, still show the overlay spin but skip image flipping
+      if (canShow) {
+        imgEl.style.filter    = 'blur(2px)';
+        imgEl.style.transform = 'scale(1.012)';
+      }
+
+      overlay.style.display = 'flex';
       setControlsDisabled(true);
 
-      const spinId = data.spinId;
-      const docBase = typeof data.baseFlipMs === 'number' ? data.baseFlipMs : baseFlipIntervalMs;
-      const docDur = typeof data.spinDurationMs === 'number' ? data.spinDurationMs : spinDurationMs;
+      const start = performance.now();
+      nextFlipAt  = start;
 
-      // If this is a new spin, start animation on this client
-      if (spinId && spinId !== lastSpinIdStarted) {
-        lastSpinIdStarted = spinId;
-        activeSpinId = spinId;
+      function tick(now) {
+        const elapsed = now - start;
+        const t = Math.min(1, elapsed / spinDurationMs);
+        const currentDelay = baseFlipIntervalMs +
+          (maxFlipIntervalMs - baseFlipIntervalMs) * easeOutQuad(t);
 
-        // Check if this client was the one that triggered it
-        if (pendingLocalSpinId && pendingLocalSpinId === spinId) {
-          isInitiatorForActiveSpin = true;
-        } else {
-          isInitiatorForActiveSpin = false;
+        // Progress bar
+        progressBar.style.width = (t * 100).toFixed(2) + '%';
+
+        // Mild shake at the start
+        if (elapsed < 320 && Math.random() < 0.35) {
+          card.classList.add('shake');
+          setTimeout(() => card.classList.remove('shake'), 140);
         }
 
-        if (typeof activeResult !== 'number') activeResult = 0;
-        startSharedSpinAnimation(activeResult, docDur, docBase);
-      }
-    } else if (lastKnownState === 'result') {
-      setControlsDisabled(false);
+        // Flip image (only if images loaded successfully)
+        if (canShow && now >= nextFlipAt) {
+          showingIndex = 1 - showingIndex;
+          imgEl.style.opacity   = '0.2';
+          imgEl.style.transform = 'scale(1.014)';
+          setTimeout(() => {
+            imgEl.src             = sources[showingIndex];
+            imgEl.style.opacity   = '1';
+            imgEl.style.transform = 'scale(1.012)';
+          }, 40);
+          nextFlipAt = now + currentDelay;
+        }
 
-      // If not currently spinning, just show the final result immediately
-      if (!isSpinning && typeof data.result === 'number' &&
-          data.result >= 0 && data.result < sources.length) {
-        showResult(data.result, { playCelebration: false });
+        if (elapsed < spinDurationMs) {
+          requestAnimationFrame(tick);
+        } else {
+          // FIX: hide overlay correctly
+          overlay.style.display = 'none';
+          progressBar.style.width = '0%';
+          isSpinning = false;
+          setControlsDisabled(false);
+
+          if (typeof activeResult === 'number') {
+            showResult(activeResult, { playCelebration: true });
+          }
+
+          // Only initiator writes final state to Firestore
+          if (isInitiatorForActiveSpin && activeSpinId) {
+            finalizeSpinInFirestore(activeSpinId, activeResult);
+          }
+        }
       }
-    } else {
-      // idle
-      setControlsDisabled(false);
+
+      requestAnimationFrame(tick);
     }
-  });
-</script>
+
+    async function finalizeSpinInFirestore(spinId, resultIndex) {
+      try {
+        await setDoc(resultDocRef, {
+          state:      'result',
+          spinId,
+          result:     resultIndex,
+          finishedAt: serverTimestamp(),
+          updatedAt:  serverTimestamp()
+        }, { merge: true });
+      } catch (err) {
+        console.error('Failed to finalize spin:', err);
+      } finally {
+        // BUG FIX: reset initiator state so next round starts with a clean slate
+        isInitiatorForActiveSpin = false;
+        activeSpinId             = null;
+        pendingLocalSpinId       = null;
+      }
+    }
+
+    /*************** Trigger spin ***************/
+    function createSpinId() {
+      if (window.crypto?.randomUUID) return crypto.randomUUID();
+      return 'spin-' + Date.now() + '-' + Math.random().toString(16).slice(2);
+    }
+
+    async function triggerSpin() {
+      // BUG FIX: also block if lastKnownState === 'result' was incorrectly keeping
+      // state stale. We only block on 'spinning' — 'result' and 'idle' both allow a new spin.
+      if (isSpinning || lastKnownState === 'spinning') return;
+
+      const spinId             = createSpinId();
+      pendingLocalSpinId       = spinId;
+      isInitiatorForActiveSpin = true;
+
+      // Optimistically mark as spinning so double-taps are blocked
+      // before the Firestore round-trip completes
+      lastKnownState = 'spinning';
+      setControlsDisabled(true);
+
+      const chosenResult = Math.random() < 0.5 ? RESULT.WHITE : RESULT.BLUE;
+
+      // Timeout guard — if Firestore doesn't echo back within 4s, reset
+      spinErrorTimeout = setTimeout(() => {
+        if (!isSpinning) {
+          lastKnownState           = 'idle';
+          pendingLocalSpinId       = null;
+          isInitiatorForActiveSpin = false;
+          setControlsDisabled(false);
+        }
+      }, 4000);
+
+      try {
+        await setDoc(resultDocRef, {
+          state:         'spinning',
+          spinId,
+          result:        chosenResult,
+          baseFlipMs:    baseFlipIntervalMs,
+          spinDurationMs,
+          startedAt:     serverTimestamp(),
+          updatedAt:     serverTimestamp()
+        });
+      } catch (err) {
+        console.error('Failed to trigger spin:', err);
+        clearTimeout(spinErrorTimeout);
+        lastKnownState           = 'idle';
+        isInitiatorForActiveSpin = false;
+        pendingLocalSpinId       = null;
+        setControlsDisabled(false);
+      }
+    }
+
+    randomBtn.addEventListener('click', triggerSpin);
+
+    /*************** Settings UI ***************/
+    function toggleSettings(open) {
+      settingsPanel.style.display = open ? 'block' : 'none';
+      if (open) {
+        intervalInput.value = String(baseFlipIntervalMs);
+        durationInput.value = String(spinDurationMs);
+      }
+    }
+
+    openSettingsBtn.addEventListener('click', (e) => {
+      e.stopPropagation(); // prevent document click handler from immediately closing
+      toggleSettings(settingsPanel.style.display === 'none' || settingsPanel.style.display === '');
+    });
+    closeSettingsBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleSettings(false);
+    });
+
+    // BUG FIX: stopPropagation on ALL clicks inside the panel so the
+    // document outside-click handler never fires on the same tap as Save/Reset.
+    // On iPad, both handlers would fire in the same event cycle without this.
+    settingsPanel.addEventListener('click',    (e) => e.stopPropagation());
+    settingsPanel.addEventListener('touchend', (e) => e.stopPropagation());
+
+    saveSettingsBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const iv = parseInt(intervalInput.value, 10);
+      const du = parseInt(durationInput.value, 10);
+      if (!Number.isFinite(iv) || iv < minInterval) {
+        alert(`Base interval must be ≥ ${minInterval} ms.`);
+        return;
+      }
+      if (!Number.isFinite(du) || du < 600) {
+        alert('Duration must be ≥ 600 ms.');
+        return;
+      }
+      baseFlipIntervalMs = iv;
+      spinDurationMs     = du;
+      // Show a brief "Saved ✓" confirmation on the button
+      saveSettingsBtn.textContent = 'Saved ✓';
+      setTimeout(() => { saveSettingsBtn.textContent = 'Save'; }, 1200);
+      toggleSettings(false);
+    });
+
+    resetDefaultsBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      baseFlipIntervalMs    = defaultBase;
+      spinDurationMs        = defaultDuration;
+      intervalInput.value   = String(defaultBase);
+      durationInput.value   = String(defaultDuration);
+    });
+
+    // Outside-click closes panel — safe now because panel clicks are stopped above
+    document.addEventListener('click', (e) => {
+      if (settingsPanel.style.display !== 'none' &&
+          !settingsPanel.contains(e.target) &&
+          e.target !== openSettingsBtn &&
+          !openSettingsBtn.contains(e.target)) {
+        toggleSettings(false);
+      }
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') toggleSettings(false);
+    });
+
+    // Reduced motion
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      baseFlipIntervalMs = Math.max(baseFlipIntervalMs, 120);
+      spinDurationMs     = Math.max(spinDurationMs, 1500);
+    }
+
+    /*************** Firestore realtime sync ***************/
+    onSnapshot(resultDocRef, (snap) => {
+      // Hide "Connecting…" badge once Firestore responds
+      connectingBadge.style.display = 'none';
+
+      if (!snap.exists()) return;
+      const data = snap.data();
+
+      lastKnownState = data.state || 'idle';
+      if (typeof data.result === 'number') activeResult = data.result;
+
+      if (lastKnownState === 'spinning') {
+        setControlsDisabled(true);
+
+        const spinId  = data.spinId;
+        const docBase = typeof data.baseFlipMs    === 'number' ? data.baseFlipMs    : baseFlipIntervalMs;
+        const docDur  = typeof data.spinDurationMs === 'number' ? data.spinDurationMs : spinDurationMs;
+
+        if (spinId && spinId !== lastSpinIdStarted) {
+          lastSpinIdStarted = spinId;
+          activeSpinId      = spinId;
+
+          // FIX: clear the error timeout since Firestore echoed back successfully
+          clearTimeout(spinErrorTimeout);
+
+          if (pendingLocalSpinId && pendingLocalSpinId === spinId) {
+            isInitiatorForActiveSpin = true;
+          } else {
+            isInitiatorForActiveSpin = false;
+          }
+
+          if (typeof activeResult !== 'number') activeResult = RESULT.WHITE;
+
+          // FIX: offset animation start time for non-initiator clients
+          // so all clients finish at roughly the same moment
+          const serverStart = data.startedAt?.toMillis?.() ?? Date.now();
+          const alreadyElapsed = Math.max(0, Date.now() - serverStart);
+          const adjustedDuration = Math.max(500, docDur - alreadyElapsed);
+
+          startSharedSpinAnimation(activeResult, adjustedDuration, docBase);
+        }
+
+      } else if (lastKnownState === 'result') {
+        // BUG FIX: after displaying result, reset to 'idle' so the next
+        // button tap isn't blocked. 'result' is a terminal state — once shown,
+        // the app is ready for another round.
+        lastKnownState = 'idle';
+        setControlsDisabled(false);
+
+        // Non-spinning clients: show final result immediately
+        if (!isSpinning &&
+            typeof data.result === 'number' &&
+            data.result >= 0 &&
+            data.result < sources.length) {
+          showResult(data.result, { playCelebration: false });
+        }
+
+      } else {
+        // idle
+        setControlsDisabled(false);
+      }
+    });
+  </script>
 
 </body>
 </html>
