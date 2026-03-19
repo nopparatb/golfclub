@@ -1,204 +1,807 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>🏌🏻GOLF CLUB BOOKING🏌🏻</title>
-  <!-- Bootstrap CSS -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-  <style>
-    body { background-color: #f8f9fa; font-family: 'Segoe UI', sans-serif; }
-    .card { border: none; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
-    .seat { display: inline-flex; align-items: center; justify-content: center; min-width: 100px; min-height: 50px; padding: 0 8px; margin: 4px; border-radius: 4px; font-size: 0.85rem; user-select: none; transition: background-color 0.2s; }
-    .seat.available { background-color: #198754; color: #fff; cursor: pointer; }
-    .seat.taken { background-color: #6c757d; color: #fff; cursor: default; }
-    .seat.me { border: 2px solid #0d6efd; }
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>KPMG Golf Charity Lucky Draw</title>
 
-    .contact { font-size: 0.9rem; color: #6c757d; }
-    .contact-list { list-style: none; padding: 0px; margin: 10px; }
+  <!-- Google Fonts: Bebas Neue (display) + DM Sans (body) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    :root {
+      --kpmg-blue: #00338d;
+      --kpmg-light: #0091da;
+      --kpmg-accent: #00b0f0;
+      --gold: #c9a84c;
+    }
+
+    * { -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: #f0f4fa;
+      background-image:
+        radial-gradient(ellipse 80% 60% at 50% 0%, rgba(0,51,141,0.10) 0%, transparent 70%),
+        repeating-linear-gradient(135deg, rgba(0,51,141,.025) 0 1px, transparent 1px 40px);
+      min-height: 100dvh;
+    }
+
+    h1, .font-display { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.04em; }
+
+    /* Card */
+    .card-shell {
+      background: #fff;
+      border-radius: 20px;
+      box-shadow:
+        0 2px 4px rgba(0,51,141,.06),
+        0 12px 40px rgba(0,51,141,.13),
+        0 0 0 1px rgba(0,51,141,.07);
+      overflow: hidden;
+    }
+
+    /* Progress bar */
+    #progressBar {
+      background: linear-gradient(90deg, var(--kpmg-blue), var(--kpmg-accent));
+      transition: width 80ms linear;
+    }
+
+    /* Flip animation */
+    .fade-swap { transition: opacity 80ms linear; }
+
+    /* Pulse glow on result */
+    .pulse-glow {
+      animation: pulseGlow 1.6s ease-out 2;
+    }
+    @keyframes pulseGlow {
+      0%   { box-shadow: 0 0 0 0 rgba(0,51,141,.5), 0 12px 40px rgba(0,51,141,.13); }
+      100% { box-shadow: 0 0 0 22px rgba(0,51,141,0), 0 12px 40px rgba(0,51,141,.13); }
+    }
+
+    /* Shake */
+    .shake { animation: shake 280ms ease-in-out; }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20% { transform: translateX(-4px); }
+      40% { transform: translateX(4px); }
+      60% { transform: translateX(-2px); }
+      80% { transform: translateX(2px); }
+    }
+
+    /* Confetti */
+    .confetti { position: absolute; width: 7px; height: 11px; opacity: 0; }
+    @keyframes confettiFall {
+      0%   { opacity: 1; transform: translateY(0) rotate(0deg); }
+      100% { opacity: 0; transform: translateY(90px) rotate(340deg); }
+    }
+
+    /* Randomize button */
+    #randomBtn {
+      font-family: 'Bebas Neue', sans-serif;
+      letter-spacing: 0.12em;
+      font-size: 1.25rem;
+      background: var(--kpmg-blue);
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      padding: 14px 40px;
+      box-shadow: 0 4px 18px rgba(0,51,141,.35), 0 1px 3px rgba(0,51,141,.2);
+      cursor: pointer;
+      transition: background 180ms, transform 120ms, box-shadow 180ms, opacity 180ms;
+      position: fixed;
+      bottom: 36px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 20;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      user-select: none;
+    }
+    #randomBtn:hover:not(:disabled) {
+      background: #002070;
+      box-shadow: 0 6px 24px rgba(0,51,141,.45), 0 1px 3px rgba(0,51,141,.2);
+      transform: translateX(-50%) translateY(-2px);
+    }
+    #randomBtn:active:not(:disabled) {
+      transform: translateX(-50%) translateY(0px);
+    }
+    #randomBtn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+    #randomBtn svg { transition: transform 200ms; }
+    #randomBtn:hover:not(:disabled) svg { transform: rotate(14deg); }
+
+    /* Settings button */
+    #openSettings {
+      position: fixed;
+      right: 14px;
+      top: 14px;
+      z-index: 30;
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.92);
+      border: 1px solid rgba(0,51,141,.12);
+      box-shadow: 0 2px 8px rgba(0,51,141,.10);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: background 150ms;
+      color: var(--kpmg-blue);
+    }
+    #openSettings:hover { background: #fff; }
+    #openSettings:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Settings panel */
+    #settingsPanel {
+      position: fixed;
+      right: 14px; top: 62px;
+      z-index: 30;
+      width: 280px;
+      background: #fff;
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 8px 32px rgba(0,51,141,.15), 0 0 0 1px rgba(0,51,141,.08);
+    }
+
+    /* Result badge */
+    #resultBadge {
+      position: absolute;
+      top: 12px; left: 12px;
+      background: rgba(0,51,141,.08);
+      color: var(--kpmg-blue);
+      border: 1px solid rgba(0,51,141,.18);
+      border-radius: 999px;
+      padding: 4px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    /* Connecting badge */
+    #connectingBadge {
+      position: absolute;
+      bottom: 12px; left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,.06);
+      color: #666;
+      border-radius: 999px;
+      padding: 4px 14px;
+      font-size: 11px;
+      font-weight: 500;
+      pointer-events: none;
+      user-select: none;
+      white-space: nowrap;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .dot-pulse {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: #999;
+      animation: dotPulse 1.2s ease-in-out infinite;
+    }
+    @keyframes dotPulse {
+      0%,100% { opacity: 0.3; transform: scale(0.8); }
+      50% { opacity: 1; transform: scale(1.1); }
+    }
+
+    /* Overlay */
+    #shuffleOverlay {
+      position: absolute; inset: 0;
+      display: none;
+      align-items: center; justify-content: center;
+      background: rgba(255,255,255,.55);
+      backdrop-filter: blur(3px);
+      -webkit-backdrop-filter: blur(3px);
+    }
+    #shuffleOverlay.active { display: flex; }
+
+    /* Input styling */
+    .setting-input {
+      width: 100%;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-family: 'DM Sans', sans-serif;
+      outline: none;
+      transition: border-color 150ms, box-shadow 150ms;
+    }
+    .setting-input:focus {
+      border-color: var(--kpmg-blue);
+      box-shadow: 0 0 0 3px rgba(0,51,141,.12);
+    }
+
+    .btn-save {
+      background: var(--kpmg-blue);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      transition: background 150ms;
+    }
+    .btn-save:hover { background: #002070; }
+    .btn-reset {
+      background: transparent;
+      color: #555;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      transition: background 150ms;
+    }
+    .btn-reset:hover { background: #f3f4f6; }
+
+    /* Header */
+    .page-header {
+      text-align: center;
+      padding-top: 28px;
+      padding-bottom: 12px;
+    }
+    .page-header .eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      color: var(--kpmg-blue);
+      text-transform: uppercase;
+      opacity: 0.65;
+    }
+    .page-header h1 {
+      font-size: clamp(2rem, 6vw, 3.2rem);
+      color: var(--kpmg-blue);
+      line-height: 1;
+      margin-top: 4px;
+    }
   </style>
 </head>
-<body class="bg-light">
-  <div class="container py-5">
+<body>
 
-    <!-- Login Screen -->
-    <div id="auth-screen" class="card mx-auto p-4" style="max-width:400px;">
-      <h5 class="text-center mb-3">🏌🏻GOLF CLUB BOOKING🏌🏻</h5>
-          
-      <form id="login-form">
-        <input type="email" id="email" class="form-control mb-3" placeholder="you@kpmg.co.th" required />
-        <button type="submit" class="btn btn-primary w-100">Login</button>
-      </form>
+  <!-- Settings toggle -->
+  <button id="openSettings" title="Alternation settings" aria-label="Edit settings">
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+  </button>
 
-       <div>
-        <p class="contact contact-list">Contact person:</p>
-        <ul class="contact contact-list list-unstyled mb-0">
-
-          <li>Watcharap@kpmg.co.th</li>
-          <li>Pichayaw@kpmg.co.th</li>
-          <li>Nopparatb@kpmg.co.th</li>
-        </ul>
-      </div>
+  <!-- Settings panel -->
+  <div id="settingsPanel" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <h2 id="settingsTitle" style="font-size:13px;font-weight:700;color:#111;letter-spacing:0.02em;">Spin Settings</h2>
+      <button id="closeSettings" style="background:none;border:none;cursor:pointer;padding:4px;border-radius:6px;color:#555;"
+              aria-label="Close settings">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
     </div>
 
-    <!-- App Screen -->
-    <div id="app-screen" class="d-none">
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3>🏌🏻GOLF CLUB BOOKING🏌🏻</h3>
-        
-        <button id="logout-btn" class="btn btn-outline-secondary">Logout</button>
-        
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div>
+        <label style="font-size:11px;color:#555;font-weight:600;display:block;margin-bottom:5px;" for="intervalInput">
+          Base flip interval (ms)
+        </label>
+        <input id="intervalInput" class="setting-input" type="number" min="20" step="10" value="55" />
+        <p style="font-size:10px;color:#888;margin-top:4px;">Shuffle starts at this speed and decelerates.</p>
       </div>
       <div>
-        <p class="contact">Contact person: Watcharap@kpmg.co.th; Pichayaw@kpmg.co.th; Nopparatb@kpmg.co.th</p>
+        <label style="font-size:11px;color:#555;font-weight:600;display:block;margin-bottom:5px;" for="durationInput">
+          Total spin duration (ms)
+        </label>
+        <input id="durationInput" class="setting-input" type="number" min="600" step="100" value="5000" />
       </div>
-
-      <!-- Admin Controls -->
-      <div id="admin-controls" class="card mb-4 d-none p-3">
-        <h5 class="mb-3">Add Room & Time Slot</h5>
-        <form id="add-slot-form" class="row g-2 align-items-end">
-          <div class="col-sm-5"><input type="text" id="room-name" class="form-control" placeholder="Room Name" required /></div>
-          <div class="col-sm-3"><input type="time" id="slot-time" class="form-control" required /></div>
-          <div class="col-sm-3"><input type="number" id="slot-capacity" class="form-control" min="1" value="1" required /></div>
-          <div class="col-sm-1 d-grid"><button type="submit" class="btn btn-success">Add</button></div>
-        </form>
-        <button id="toggle-reg-btn" class="btn btn-outline-primary mt-3">Loading…</button>
-        <div id="admin-slots-list" class="mt-4">
-          <h5 class="mb-3">Manage Slots</h5>
-          <table class="table table-hover">
-            <thead><tr><th>Room</th><th>Time</th><th>Capacity</th><th class="text-end">Actions</th></tr></thead>
-            <tbody id="admin-slots-body"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Booking Slots -->
-      <div id="slots-container" class="row gy-4"></div>
-
-      <!-- Admin Report -->
-      <div id="admin-report" class="card mt-5 d-none p-3">
-        <h5 class="mb-3">Booking Summary</h5>
-        <button id="export-btn" class="btn btn-outline-primary mb-3">Export CSV</button>
-        <div class="table-responsive">
-          <table class="table table-sm">
-            <thead><tr><th>Room</th><th>Time</th><th>Email</th></tr></thead>
-            <tbody id="report-body"></tbody>
-          </table>
-        </div>
+      <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;padding-top:4px;">
+        <button id="resetDefaults" class="btn-reset">Reset</button>
+        <button id="saveSettings" class="btn-save">Save</button>
       </div>
     </div>
   </div>
 
-  <script>
-    // Firebase init
-    const firebaseConfig = { apiKey:"AIzaSyDxlQWFYRcbGZ133HPEMXYy8tR_KMUiJw0", authDomain:"lottogame-16083.firebaseapp.com", projectId:"lottogame-16083", storageBucket:"lottogame-16083.appspot.com", messagingSenderId:"278778623701", appId:"1:278778623701:web:c7828b036c617a13fa145c" };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+  <!-- Page layout -->
+  <main style="max-width:680px;margin:0 auto;padding:0 16px 120px;min-height:100dvh;display:flex;flex-direction:column;">
 
-    const adminEmail = 'admin@kpmg.co.th';
-    let currentUser = null, slotsData = [], bookingsData = [], regOpen = true;
+    <!-- Header -->
+    <div class="page-header">
+      <p class="eyebrow">Golf Charity Event</p>
+      <h1>Lucky Draw</h1>
+    </div>
 
-    // DOM refs
-    const authScreen = document.getElementById('auth-screen');
-    const loginForm = document.getElementById('login-form');
-    const emailInput = document.getElementById('email');
-    const appScreen = document.getElementById('app-screen');
-    const logoutBtn = document.getElementById('logout-btn');
-    const adminControls = document.getElementById('admin-controls');
-    const toggleRegBtn = document.getElementById('toggle-reg-btn');
-    const addSlotForm = document.getElementById('add-slot-form');
-    const roomNameInput = document.getElementById('room-name');
-    const slotTimeInput = document.getElementById('slot-time');
-    const slotCapacityInput = document.getElementById('slot-capacity');
-    const slotsContainer = document.getElementById('slots-container');
-    const adminReport = document.getElementById('admin-report');
-    const reportBody = document.getElementById('report-body');
-    const exportBtn = document.getElementById('export-btn');
-    const adminSlotsBody = document.getElementById('admin-slots-body');
+    <!-- Card -->
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;">
+      <div id="card" class="card-shell" style="position:relative;width:100%;max-width:560px;aspect-ratio:4/3;">
 
-    // Login
-    loginForm.addEventListener('submit', e => {
-      e.preventDefault();
-      const email = emailInput.value.trim().toLowerCase();
-      if (!email.endsWith('@kpmg.co.th')) return alert('Use @kpmg.co.th');
-      currentUser = email;
-      authScreen.classList.add('d-none'); appScreen.classList.remove('d-none');
-      if (currentUser === adminEmail) { adminControls.classList.remove('d-none'); adminReport.classList.remove('d-none'); }
-      subscribeData();
-    });
-    logoutBtn.addEventListener('click', () => location.reload());
+        <!-- Progress bar -->
+        <div style="position:absolute;top:0;left:0;right:0;height:3px;background:rgba(0,51,141,.06);z-index:2;">
+          <div id="progressBar" style="height:100%;width:0%;border-radius:2px;"></div>
+        </div>
 
-    // Subscribe
-    function subscribeData() {
-      db.collection('slots').onSnapshot(snap => { slotsData = snap.docs.map(d=>({id:d.id,...d.data()})); render(); });
-      db.collection('bookings').onSnapshot(snap => { bookingsData = snap.docs.map(d=>({id:d.id,...d.data()})); render(); });
-      const regDoc = db.collection('settings').doc('registration');
-      regDoc.onSnapshot(doc => { if(doc.exists) regOpen=doc.data().open; else regDoc.set({open:true}); toggleRegBtn.innerText = regOpen?'Close Registration':'Open Registration'; render(); });
-      toggleRegBtn.addEventListener('click', () => db.collection('settings').doc('registration').set({ open: !regOpen }));
+        <!-- Main image -->
+        <img id="displayImg" src="" alt="Lucky draw result"
+             class="fade-swap"
+             style="width:100%;height:100%;object-fit:contain;opacity:0;display:block;"
+             draggable="false" />
+
+        <!-- Shuffle overlay — FIX: uses display:flex not class toggle -->
+        <div id="shuffleOverlay">
+          <div style="position:absolute;inset:0;background:rgba(255,255,255,.55);backdrop-filter:blur(3px);"></div>
+          <div style="position:absolute;inset:0;opacity:0.12;background-image:repeating-linear-gradient(135deg,rgba(0,51,141,.15) 0 8px,transparent 8px 18px);"></div>
+          <div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:8px;">
+            <div style="width:32px;height:32px;border-radius:50%;border:2.5px solid var(--kpmg-blue);border-top-color:transparent;animation:spin 700ms linear infinite;"></div>
+            <span style="font-size:11px;font-weight:600;color:var(--kpmg-blue);letter-spacing:0.06em;text-transform:uppercase;">Shuffling…</span>
+          </div>
+        </div>
+
+        <!-- Result badge -->
+        <div id="resultBadge" style="display:none;">
+          ✦ Result Locked
+        </div>
+
+        <!-- Connecting badge -->
+        <div id="connectingBadge">
+          <span class="dot-pulse"></span>
+          Connecting…
+        </div>
+
+        <!-- Confetti container -->
+        <div id="confetti" style="pointer-events:none;position:absolute;inset:0;overflow:hidden;"></div>
+
+        <!-- Fallback hint — shown when images can't load -->
+        <div id="fallbackText"
+             style="display:none;position:absolute;inset:0;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-size:13px;color:#888;padding:32px;gap:12px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="#ccc" stroke-width="1.5">
+            <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+            <polyline points="21 15 16 10 5 21"/>
+          </svg>
+          <div>
+            <strong style="color:#555;display:block;margin-bottom:6px;">Images not found</strong>
+            Place your images in an <code style="background:#f3f4f6;padding:2px 6px;border-radius:4px;">assets/</code> folder next to this HTML file,<br/>
+            named <code style="background:#f3f4f6;padding:2px 6px;border-radius:4px;">KPMG - White.png</code> and <code style="background:#f3f4f6;padding:2px 6px;border-radius:4px;">KPMG - Blue.png</code>.<br/><br/>
+            <span style="font-size:11px;color:#aaa;">⚠️ Must be served via a web server, not opened as a local file.<br/>
+            Try: <code style="background:#f3f4f6;padding:1px 5px;border-radius:3px;">npx serve .</code> or GitHub Pages.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Randomize button — FIX: starts at bottom, no mid-screen positioning -->
+  <button id="randomBtn">
+    Randomize
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+         fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="16 3 21 3 21 8"/>
+      <line x1="4" y1="20" x2="21" y2="3"/>
+      <polyline points="21 16 21 21 16 21"/>
+      <line x1="15" y1="15" x2="21" y2="21"/>
+    </svg>
+  </button>
+
+  <style>
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
-    addSlotForm.addEventListener('submit', e => { e.preventDefault(); const room=roomNameInput.value.trim(), time=slotTimeInput.value, cap=parseInt(slotCapacityInput.value,10); if(room&&time&&cap>0) db.collection('slots').add({room,time,capacity:cap}); addSlotForm.reset(); });
+  </style>
 
-    // Sort comparator
-    function slotComparator(a,b) { if(a.room<b.room) return -1; if(a.room>b.room) return 1; return a.time.localeCompare(b.time);}    
+  <!-- Firebase + app logic -->
+  <script type="module">
+    /*************** Firebase setup ***************/
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js';
+    import {
+      getFirestore,
+      doc,
+      setDoc,
+      onSnapshot,
+      serverTimestamp
+    } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
 
-    function render() {
-      renderSlots(); if(currentUser===adminEmail) { renderReport(); renderAdminSlots(); }
+    const firebaseConfig = {
+      apiKey: "AIzaSyDxlQWFYRcbGZ133HPEMXYy8tR_KMUiJw0",
+      authDomain: "lottogame-16083.firebaseapp.com",
+      projectId: "lottogame-16083",
+      storageBucket: "lottogame-16083.firebasestorage.app",
+      messagingSenderId: "278778623701",
+      appId: "1:278778623701:web:c7828b036c617a13fa145c"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
+
+    // Named constants for clarity — FIX: self-documenting result values
+    const RESULT = { WHITE: 0, BLUE: 1 };
+
+    const resultDocRef = doc(db, 'golfluckydraw', 'currentResult');
+
+    /*************** Config ***************/
+    let baseFlipIntervalMs = 55;
+    let spinDurationMs     = 5000;
+    const minInterval        = 20;
+    const defaultBase        = 55;
+    const defaultDuration    = 5000;
+    const maxFlipIntervalMs  = 260;
+
+    /*************** State ***************/
+    let isSpinning              = false;
+    let showingIndex            = 0;
+    let nextFlipAt              = 0;
+
+    let lastKnownState          = 'idle';
+    let lastSpinIdStarted       = null;
+    let activeSpinId            = null;
+    let activeResult            = null;
+    let isInitiatorForActiveSpin = false;
+    let pendingLocalSpinId      = null;
+    let spinErrorTimeout        = null;   // FIX: guard for Firestore write failure
+
+    /*************** DOM ***************/
+    const imgEl          = document.getElementById('displayImg');
+    const randomBtn      = document.getElementById('randomBtn');
+    const resultBadge    = document.getElementById('resultBadge');
+    const fallbackText   = document.getElementById('fallbackText');
+    const overlay        = document.getElementById('shuffleOverlay');
+    const progressBar    = document.getElementById('progressBar');
+    const card           = document.getElementById('card');
+    const confettiWrap   = document.getElementById('confetti');
+    const connectingBadge = document.getElementById('connectingBadge');
+
+    const openSettingsBtn  = document.getElementById('openSettings');
+    const settingsPanel    = document.getElementById('settingsPanel');
+    const closeSettingsBtn = document.getElementById('closeSettings');
+    const intervalInput    = document.getElementById('intervalInput');
+    const durationInput    = document.getElementById('durationInput');
+    const saveSettingsBtn  = document.getElementById('saveSettings');
+    const resetDefaultsBtn = document.getElementById('resetDefaults');
+
+    /*************** Image sources ***************/
+    // ⚠️  IMPORTANT: If your images aren't loading, you MUST serve this file via a web server.
+    //     Opening index.html directly as a file:// URL will block relative asset paths.
+    //     Options:
+    //       • GitHub Pages  → use full URL: 'https://yourusername.github.io/repo/assets/KPMG - White.png'
+    //       • Local server  → run: npx serve . (or python -m http.server 8080) then open http://localhost
+    //       • Or replace paths below with full https:// URLs to wherever your images are hosted.
+    const sources = [
+      './assets/KPMG - White.png',   // index 0 = RESULT.WHITE
+      './assets/KPMG - Blue.png'     // index 1 = RESULT.BLUE
+    ];
+
+    // canShow tracks whether images loaded successfully
+    // The button is ALWAYS clickable — canShow only gates the visual flip
+    let canShow = false;
+    let loadErrors = 0;
+
+    function preloadImages() {
+      let loaded = 0;
+      sources.forEach((src, i) => {
+        const im = new Image();
+        im.onload = () => {
+          loaded++;
+          if (loaded === sources.length) {
+            canShow = true;
+            fallbackText.style.display = 'none';
+            imgEl.src = sources[0];
+            imgEl.style.opacity = '1';
+          }
+        };
+        im.onerror = () => {
+          loadErrors++;
+          // Show fallback hint with flex so it centers properly
+          fallbackText.style.display = 'flex';
+          imgEl.style.opacity = '0';
+          // Still allow button to work — Firestore sync still functions
+          // even if images fail to load locally
+        };
+        im.src = src;
+      });
     }
+    preloadImages();
 
-    function renderSlots() {
-      slotsContainer.innerHTML='';
-      if(currentUser!==adminEmail && !regOpen) {
-        slotsContainer.innerHTML='<div class="alert alert-warning text-center w-100 mb-4">Booking closed</div>';
+    /*************** Helpers ***************/
+    function easeOutQuad(t) { return 1 - (1 - t) * (1 - t); }
+
+    function createConfettiBurst() {
+      confettiWrap.innerHTML = '';
+      const colors = ['#00338d', '#0091da', '#00b0f0', '#c9a84c', '#22c55e', '#f59e0b'];
+      for (let i = 0; i < 22; i++) {
+        const p = document.createElement('span');
+        p.className = 'confetti';
+        p.style.cssText = `
+          left:${40 + Math.random() * 20}%;
+          top:8%;
+          background:${colors[i % colors.length]};
+          border-radius:${Math.random() > 0.5 ? '2px' : '50%'};
+          animation:confettiFall ${700 + Math.random() * 700}ms ease-out forwards;
+          transform:rotate(${Math.random() * 160 - 80}deg);
+        `;
+        confettiWrap.appendChild(p);
       }
-      const hasBooking = bookingsData.some(b=>b.email===currentUser);
-      const sorted = slotsData.slice().sort(slotComparator);
-      sorted.forEach(slot => {
-        const slotBs = bookingsData.filter(b=>b.slotId===slot.id).map(b=>b.email);
-        const userHere = slotBs.includes(currentUser);
-        const isFull = slotBs.length>=slot.capacity;
-        let seatsHTML='<div class="d-flex flex-wrap justify-content-center mb-2">';
-        for(let i=0;i<slot.capacity;i++){const occ=slotBs[i]||null;const cls=occ?`seat taken${occ===currentUser?' me':''}`:'seat available';seatsHTML+=`<div class="${cls}" title="${occ||'Available'}">${occ?occ.split('@')[0]:''}</div>`;} seatsHTML+='</div>';
-        // Determine action
-        let action='';
-        if(currentUser!==adminEmail) {
-          if(userHere) {
-            // Cancel
-            action=`<button class="btn btn-sm ${!regOpen?'btn-secondary':'btn-danger'} w-100 mb-2" ${!regOpen?'disabled':''} data-cancel="${slot.id}">${!regOpen?'Cancel Disabled':'Cancel'}</button>`;
-          } else if(!hasBooking && !isFull && regOpen) {
-            action=`<button class="btn btn-sm btn-primary w-100 mb-2" data-book="${slot.id}">Book</button>`;
-          } else {
-            action=`<button class="btn btn-sm btn-secondary w-100 mb-2" disabled>${!regOpen?'Booking Closed':(hasBooking?'You have already booked another slot':'Full')}</button>`;
+      setTimeout(() => { confettiWrap.innerHTML = ''; }, 1800);
+    }
+
+    function setControlsDisabled(disabled) {
+      [randomBtn, openSettingsBtn].forEach(el => {
+        if (!el) return;
+        el.disabled = disabled;
+      });
+    }
+
+    function showResult(index, { playCelebration = false } = {}) {
+      // Show result badge regardless of image load state
+      resultBadge.style.display = 'block';
+      card.classList.add('pulse-glow');
+      if (playCelebration) createConfettiBurst();
+
+      if (!canShow) return; // images not loaded — badge + confetti still fires
+
+      imgEl.style.opacity = '0.2';
+      setTimeout(() => {
+        imgEl.src = sources[index];
+        imgEl.style.opacity = '1';
+        imgEl.style.filter  = 'none';
+        imgEl.style.transform = 'none';
+      }, 80);
+      showingIndex = index;
+    }
+
+    /*************** Shared spin animation ***************/
+    function startSharedSpinAnimation(finalResultIndex, duration, baseInterval) {
+      if (isSpinning) return;
+      isSpinning   = true;
+      activeResult = finalResultIndex;
+
+      if (typeof duration === 'number')     spinDurationMs    = duration;
+      if (typeof baseInterval === 'number') baseFlipIntervalMs = baseInterval;
+
+      resultBadge.style.display = 'none';
+      card.classList.remove('pulse-glow');
+
+      // If images never loaded, still show the overlay spin but skip image flipping
+      if (canShow) {
+        imgEl.style.filter    = 'blur(2px)';
+        imgEl.style.transform = 'scale(1.012)';
+      }
+
+      overlay.style.display = 'flex';
+      setControlsDisabled(true);
+
+      const start = performance.now();
+      nextFlipAt  = start;
+
+      function tick(now) {
+        const elapsed = now - start;
+        const t = Math.min(1, elapsed / spinDurationMs);
+        const currentDelay = baseFlipIntervalMs +
+          (maxFlipIntervalMs - baseFlipIntervalMs) * easeOutQuad(t);
+
+        // Progress bar
+        progressBar.style.width = (t * 100).toFixed(2) + '%';
+
+        // Mild shake at the start
+        if (elapsed < 320 && Math.random() < 0.35) {
+          card.classList.add('shake');
+          setTimeout(() => card.classList.remove('shake'), 140);
+        }
+
+        // Flip image (only if images loaded successfully)
+        if (canShow && now >= nextFlipAt) {
+          showingIndex = 1 - showingIndex;
+          imgEl.style.opacity   = '0.2';
+          imgEl.style.transform = 'scale(1.014)';
+          setTimeout(() => {
+            imgEl.src             = sources[showingIndex];
+            imgEl.style.opacity   = '1';
+            imgEl.style.transform = 'scale(1.012)';
+          }, 40);
+          nextFlipAt = now + currentDelay;
+        }
+
+        if (elapsed < spinDurationMs) {
+          requestAnimationFrame(tick);
+        } else {
+          // FIX: hide overlay correctly
+          overlay.style.display = 'none';
+          progressBar.style.width = '0%';
+          isSpinning = false;
+          setControlsDisabled(false);
+
+          if (typeof activeResult === 'number') {
+            showResult(activeResult, { playCelebration: true });
+          }
+
+          // Only initiator writes final state to Firestore
+          if (isInitiatorForActiveSpin && activeSpinId) {
+            finalizeSpinInFirestore(activeSpinId, activeResult);
           }
         }
-        const col=document.createElement('div'); col.className='col-md-4';
-        col.innerHTML=`<div class="card p-3"><h6 class="mb-1">${slot.room}</h6><small class="text-muted mb-2 d-block">${slot.time}</small>${seatsHTML}${action}</div>`;
-        slotsContainer.appendChild(col);
-      });
-      if(currentUser!==adminEmail && regOpen) {
-        document.querySelectorAll('[data-book]').forEach(b=>b.onclick=()=>bookSlot(b.dataset.book));
-        document.querySelectorAll('[data-cancel]').forEach(b=>b.onclick=()=>cancelBooking(b.dataset.cancel));
+      }
+
+      requestAnimationFrame(tick);
+    }
+
+    async function finalizeSpinInFirestore(spinId, resultIndex) {
+      try {
+        await setDoc(resultDocRef, {
+          state:      'result',
+          spinId,
+          result:     resultIndex,
+          finishedAt: serverTimestamp(),
+          updatedAt:  serverTimestamp()
+        }, { merge: true });
+      } catch (err) {
+        console.error('Failed to finalize spin:', err);
       }
     }
 
-    function renderAdminSlots() {
-      adminSlotsBody.innerHTML='';
-      slotsData.slice().sort(slotComparator).forEach(slot=>{
-        const row=document.createElement('tr');
-        row.innerHTML=`<td>${slot.room}</td><td>${slot.time}</td><td>${slot.capacity}</td><td class="text-end"><button class="btn btn-sm btn-outline-primary me-2" data-edit="${slot.id}">Edit</button><button class="btn btn-sm btn-outline-danger" data-delete="${slot.id}">Delete</button></td>`;
-        adminSlotsBody.appendChild(row);
-      });
-      // Edit/Delete binding omitted for brevity
+    /*************** Trigger spin ***************/
+    function createSpinId() {
+      if (window.crypto?.randomUUID) return crypto.randomUUID();
+      return 'spin-' + Date.now() + '-' + Math.random().toString(16).slice(2);
     }
 
-    async function bookSlot(id) { if(bookingsData.some(b=>b.email===currentUser))return; const slot=slotsData.find(s=>s.id===id); if(bookingsData.filter(b=>b.slotId===id).length>=slot.capacity)return alert('Full'); await db.collection('bookings').doc(`${id}_${currentUser}`).set({slotId:id,email:currentUser}); }
-    async function cancelBooking(id) { await db.collection('bookings').doc(`${id}_${currentUser}`).delete(); }
+    async function triggerSpin() {
+      if (isSpinning || lastKnownState === 'spinning') return;
 
-    function renderReport(){ reportBody.innerHTML=''; bookingsData.forEach(b=>{ const s=slotsData.find(x=>x.id===b.slotId); if(!s)return; reportBody.innerHTML+=`<tr><td>${s.room}</td><td>${s.time}</td><td>${b.email}</td></tr>`; }); }
-    exportBtn.onclick=()=>{ let csv='Room,Time,Email\n'; reportBody.querySelectorAll('tr').forEach(r=>{ csv+=Array.from(r.children).map(td=>td.innerText).join(',')+'\n'; }); const blob=new Blob([csv],{type:'text/csv'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='booking.csv';a.click();URL.revokeObjectURL(url); };
+      const spinId      = createSpinId();
+      pendingLocalSpinId      = spinId;
+      isInitiatorForActiveSpin = true;
 
+      const chosenResult = Math.random() < 0.5 ? RESULT.WHITE : RESULT.BLUE;
+
+      // FIX: timeout guard — if Firestore doesn't echo back within 4s, reset
+      spinErrorTimeout = setTimeout(() => {
+        if (!isSpinning) {
+          pendingLocalSpinId       = null;
+          isInitiatorForActiveSpin = false;
+          setControlsDisabled(false);
+        }
+      }, 4000);
+
+      try {
+        await setDoc(resultDocRef, {
+          state:         'spinning',
+          spinId,
+          result:        chosenResult,
+          baseFlipMs:    baseFlipIntervalMs,
+          spinDurationMs,
+          startedAt:     serverTimestamp(),
+          updatedAt:     serverTimestamp()
+        });
+      } catch (err) {
+        console.error('Failed to trigger spin:', err);
+        clearTimeout(spinErrorTimeout);
+        isInitiatorForActiveSpin = false;
+        pendingLocalSpinId       = null;
+        setControlsDisabled(false);
+      }
+    }
+
+    randomBtn.addEventListener('click', triggerSpin);
+
+    /*************** Settings UI ***************/
+    function toggleSettings(open) {
+      settingsPanel.style.display = open ? 'block' : 'none';
+      if (open) {
+        intervalInput.value = String(baseFlipIntervalMs);
+        durationInput.value = String(spinDurationMs);
+      }
+    }
+
+    openSettingsBtn.addEventListener('click', () => toggleSettings(true));
+    closeSettingsBtn.addEventListener('click', () => toggleSettings(false));
+
+    saveSettingsBtn.addEventListener('click', () => {
+      const iv = parseInt(intervalInput.value, 10);
+      const du = parseInt(durationInput.value, 10);
+      if (!Number.isFinite(iv) || iv < minInterval) {
+        alert(`Base interval must be ≥ ${minInterval} ms.`);
+        return;
+      }
+      if (!Number.isFinite(du) || du < 600) {
+        alert('Duration must be ≥ 600 ms.');
+        return;
+      }
+      baseFlipIntervalMs = iv;
+      spinDurationMs     = du;
+      toggleSettings(false);
+    });
+
+    resetDefaultsBtn.addEventListener('click', () => {
+      baseFlipIntervalMs    = defaultBase;
+      spinDurationMs        = defaultDuration;
+      intervalInput.value   = String(defaultBase);
+      durationInput.value   = String(defaultDuration);
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!settingsPanel.contains(e.target) &&
+          e.target !== openSettingsBtn &&
+          !openSettingsBtn.contains(e.target)) {
+        toggleSettings(false);
+      }
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') toggleSettings(false);
+    });
+
+    // Reduced motion
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      baseFlipIntervalMs = Math.max(baseFlipIntervalMs, 120);
+      spinDurationMs     = Math.max(spinDurationMs, 1500);
+    }
+
+    /*************** Firestore realtime sync ***************/
+    onSnapshot(resultDocRef, (snap) => {
+      // Hide "Connecting…" badge once Firestore responds
+      connectingBadge.style.display = 'none';
+
+      if (!snap.exists()) return;
+      const data = snap.data();
+
+      lastKnownState = data.state || 'idle';
+      if (typeof data.result === 'number') activeResult = data.result;
+
+      if (lastKnownState === 'spinning') {
+        setControlsDisabled(true);
+
+        const spinId  = data.spinId;
+        const docBase = typeof data.baseFlipMs    === 'number' ? data.baseFlipMs    : baseFlipIntervalMs;
+        const docDur  = typeof data.spinDurationMs === 'number' ? data.spinDurationMs : spinDurationMs;
+
+        if (spinId && spinId !== lastSpinIdStarted) {
+          lastSpinIdStarted = spinId;
+          activeSpinId      = spinId;
+
+          // FIX: clear the error timeout since Firestore echoed back successfully
+          clearTimeout(spinErrorTimeout);
+
+          if (pendingLocalSpinId && pendingLocalSpinId === spinId) {
+            isInitiatorForActiveSpin = true;
+          } else {
+            isInitiatorForActiveSpin = false;
+          }
+
+          if (typeof activeResult !== 'number') activeResult = RESULT.WHITE;
+
+          // FIX: offset animation start time for non-initiator clients
+          // so all clients finish at roughly the same moment
+          const serverStart = data.startedAt?.toMillis?.() ?? Date.now();
+          const alreadyElapsed = Math.max(0, Date.now() - serverStart);
+          const adjustedDuration = Math.max(500, docDur - alreadyElapsed);
+
+          startSharedSpinAnimation(activeResult, adjustedDuration, docBase);
+        }
+
+      } else if (lastKnownState === 'result') {
+        setControlsDisabled(false);
+
+        // Non-spinning clients: show final result immediately
+        if (!isSpinning &&
+            typeof data.result === 'number' &&
+            data.result >= 0 &&
+            data.result < sources.length) {
+          showResult(data.result, { playCelebration: false });
+        }
+
+      } else {
+        // idle
+        setControlsDisabled(false);
+      }
+    });
   </script>
+
 </body>
 </html>
