@@ -426,6 +426,7 @@
     const RESULT = { WHITE: 0, BLUE: 1 };
 
     const resultDocRef = doc(db, 'golfluckydraw', 'currentResult');
+    const settingsDocRef = doc(db, 'golfluckydraw', 'settings');
 
     /*************** Config ***************/
     let baseFlipIntervalMs = 55;
@@ -617,6 +618,9 @@
           progressBar.style.width = '0%';
           isSpinning = false;
           setControlsDisabled(false);
+          if (isInitiatorForActiveSpin) {
+            lastKnownState = 'idle';
+          }
 
           if (typeof activeResult === 'number') {
             showResult(activeResult, { playCelebration: true });
@@ -729,7 +733,7 @@
     settingsPanel.addEventListener('click',    (e) => e.stopPropagation());
     settingsPanel.addEventListener('touchend', (e) => e.stopPropagation());
 
-    saveSettingsBtn.addEventListener('click', (e) => {
+    saveSettingsBtn.addEventListener('click', async (e) => {
       e.stopPropagation();
       const iv = parseInt(intervalInput.value, 10);
       const du = parseInt(durationInput.value, 10);
@@ -743,18 +747,38 @@
       }
       baseFlipIntervalMs = iv;
       spinDurationMs     = du;
-      // Show a brief "Saved ✓" confirmation on the button
-      saveSettingsBtn.textContent = 'Saved ✓';
-      setTimeout(() => { saveSettingsBtn.textContent = 'Save'; }, 1200);
+      try {
+        await setDoc(settingsDocRef, {
+          baseFlipIntervalMs,
+          spinDurationMs,
+          updatedAt: serverTimestamp()
+        });
+        // Show a brief "Saved ✓" confirmation on the button
+        saveSettingsBtn.textContent = 'Saved ✓';
+        setTimeout(() => { saveSettingsBtn.textContent = 'Save'; }, 1200);
+      } catch (err) {
+        console.error('Failed to save settings:', err);
+        alert('Failed to save settings. Please try again.');
+      }
       toggleSettings(false);
     });
 
-    resetDefaultsBtn.addEventListener('click', (e) => {
+    resetDefaultsBtn.addEventListener('click', async (e) => {
       e.stopPropagation();
       baseFlipIntervalMs    = defaultBase;
       spinDurationMs        = defaultDuration;
       intervalInput.value   = String(defaultBase);
       durationInput.value   = String(defaultDuration);
+      try {
+        await setDoc(settingsDocRef, {
+          baseFlipIntervalMs: defaultBase,
+          spinDurationMs: defaultDuration,
+          updatedAt: serverTimestamp()
+        });
+      } catch (err) {
+        console.error('Failed to reset settings:', err);
+        alert('Failed to reset settings. Please try again.');
+      }
     });
 
     // Outside-click closes panel — safe now because panel clicks are stopped above
@@ -833,9 +857,29 @@
           showResult(data.result, { playCelebration: false });
         }
 
+        // Reset the state in Firestore to 'idle' after showing the result
+        setDoc(resultDocRef, { state: 'idle', updatedAt: serverTimestamp() }, { merge: true });
       } else {
         // idle
         setControlsDisabled(false);
+      }
+    });
+
+    // Load settings from Firestore
+    onSnapshot(settingsDocRef, (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        if (typeof data.baseFlipIntervalMs === 'number') {
+          baseFlipIntervalMs = data.baseFlipIntervalMs;
+        }
+        if (typeof data.spinDurationMs === 'number') {
+          spinDurationMs = data.spinDurationMs;
+        }
+        // Update inputs if panel is open
+        if (settingsPanel.style.display === 'block') {
+          intervalInput.value = String(baseFlipIntervalMs);
+          durationInput.value = String(spinDurationMs);
+        }
       }
     });
   </script>
